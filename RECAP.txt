@@ -1,0 +1,141 @@
+===============================================================================
+  GENERATEUR DE VIDEO  -  Recap du projet
+  Depot : https://github.com/Daniel38160/creator-video-
+===============================================================================
+
+-------------------------------------------------------------------------------
+1. C'EST QUOI ?
+-------------------------------------------------------------------------------
+Une appli qui transforme un SCRIPT (texte) + des IMAGES en une VIDEO finie,
+avec une voix de synthese, des textes a l'ecran, des fondus et une intro.
+Pensee pour une CHAINE : tu la montes une fois, puis chaque episode =
+un dossier + un clic.
+
+Principe :
+   un dossier d'episode (script.md + images/)  ->  un clic  ->  la video (.mp4 + .srt)
+
+
+-------------------------------------------------------------------------------
+2. CE QUE L'APPLI SAIT FAIRE
+-------------------------------------------------------------------------------
+- Voix off automatique a partir du texte (TTS) :
+    * ElevenLabs (par defaut, la plus naturelle - necessite une cle)
+    * edge-tts (gratuit), Piper (hors-ligne), dummy (muet, pour tester)
+    * bouton "Charger mes voix" : liste tes voix ElevenLabs depuis ta cle
+- Images :
+    * tu les mets toi-meme dans images/ (01_..., 02_... pour l'ordre), OU
+    * recherche AUTOMATIQUE sur Pixabay selon les mots-cles du script
+- Textes a l'ecran, bandeau "Sources", logo (optionnel), intro avec titre
+- Crossfade (fondu enchaine) entre les images + leger zoom (effet Ken Burns)
+- Images de fin / gag : une image tenue X secondes, avec un bruitage possible
+- Plusieurs formats d'un coup : YouTube 16:9, Short 9:16, carre
+- Sous-titres .srt generes automatiquement
+- Audio et video parfaitement synchronises (aucune derive)
+- Tous les reglages (cles API, format, etc.) sont memorises : a saisir 1 fois
+
+
+-------------------------------------------------------------------------------
+3. COMMENT S'EN SERVIR (fenetre)
+-------------------------------------------------------------------------------
+Lancer l'appli :
+   - double-clic sur  start_gui.bat   (Python requis sur le PC)
+
+Dans la fenetre :
+   1. "Parcourir..." pour choisir un dossier d'episode
+      (ou "Nouvel episode..." pour en creer un tout pret)
+   2. Choisir la voix :
+        - elevenlabs : coller la cle, "Charger mes voix", choisir une voix
+        - ou "dummy" pour un test muet sans cle
+   3. (Option) cocher "Chercher les images auto (Pixabay)" + coller la cle Pixabay
+   4. Choisir le format (long / short / square) et la transition
+   5. Cliquer "Generer la video"
+   -> la video + le .srt arrivent dans le sous-dossier  output/
+      et le dossier s'ouvre tout seul a la fin.
+
+
+-------------------------------------------------------------------------------
+4. ECRIRE UN EPISODE (fichier script.md)
+-------------------------------------------------------------------------------
+Un SEGMENT par bloc, separe par une ligne vide.
+Les lignes [cle: valeur] sont des directives ; le reste est lu par la voix.
+
+   # Titre de l'episode              (sert a l'intro)
+
+   [img: photo.jpg]                  image du segment (sinon : image suivante
+                                     de images/, ou recherche auto Pixabay)
+   [text: Etape 1 : importer]        texte affiche a l'ecran
+   [source: ma-source.com]           petit bandeau "Sources"
+   Voici la phrase lue par la voix.  (tout le texte normal = narration)
+
+   [img: suite.jpg]
+   Deuxieme segment...
+
+Directives utiles :
+   [img: fichier]     image du segment
+   [text: ...]        texte a l'ecran
+   [source: ...]      bandeau sources
+   [audio: fichier]   joue un son/bruitage au lieu de la voix (gag)
+   [hold: N]          tient une image N secondes (image sans narration)
+
+Gag / carton de fin : un segment SANS narration devient une image tenue.
+   [img: oups.png]
+   [audio: assets/pouet.wav]
+
+   [img: a_bientot.png]
+   [hold: 3]
+
+
+-------------------------------------------------------------------------------
+5. LES CLES (a saisir une seule fois, memorisees)
+-------------------------------------------------------------------------------
+- ElevenLabs (voix)  : compte sur elevenlabs.io -> Profile -> API Keys
+- Pixabay (images)   : compte sur pixabay.com -> API  (gratuit, sans attribution)
+Les cles restent sur TON PC (dossier %APPDATA%\GenerateurVideo). Si tu partages
+l'installateur, tes cles ne partent pas avec : chacun met la sienne.
+
+
+-------------------------------------------------------------------------------
+6. PARTAGER L'APPLI (pour quelqu'un sans Python)
+-------------------------------------------------------------------------------
+- build_windows.bat    -> fabrique  dist\GenerateurVideo.exe  (ffmpeg inclus,
+                          Python stable installe tout seul au besoin)
+- build_installer.bat  -> fabrique  installer_output\GenerateurVideo-Setup.exe
+                          = LE fichier a envoyer. L'autre personne le lance :
+                          installation + raccourci Bureau, sans droits admin.
+
+
+-------------------------------------------------------------------------------
+7. CE QU'IL FAUT SUR LE PC
+-------------------------------------------------------------------------------
+- Pour UTILISER l'appli (start_gui.bat) : Python + ffmpeg.
+- Pour FABRIQUER l'exe/installateur : Python (3.12/3.13), le reste s'installe seul.
+- Pour UTILISER l'exe deja fabrique : rien (ffmpeg est embarque).
+Installer ffmpeg si besoin :  winget install Gyan.FFmpeg
+
+
+-------------------------------------------------------------------------------
+8. CE QU'ON A FAIT ENSEMBLE (historique)
+-------------------------------------------------------------------------------
+1.  Creation du pipeline Python (voix + images -> video) : CLI + modules.
+2.  Voix ElevenLabs par defaut ; crossfade entre images ; images de fin / gag
+    ([hold:] et [audio:]).
+3.  Appli fenetre (gui.py) + build .exe autonome (ffmpeg telecharge auto) + icone.
+4.  Installateur partageable (Inno Setup) avec raccourci Bureau.
+5.  Deplacement du projet dans son propre depot dedie (creator-video-),
+    nettoye du code CAM, pipeline a la racine ; ancienne PR fermee.
+6.  Corrections build Windows : Python stable (eviter la pre-version 3.15),
+    PyYAML rendu optionnel.
+7.  Renommage de l'appli en "Generateur de video".
+8.  Cle(s) memorisee(s) de facon fiable (a la fermeture aussi).
+9.  Recherche d'images automatique via Pixabay (nouveau).
+
+
+-------------------------------------------------------------------------------
+9. A FAIRE / IDEES POUR LA SUITE (optionnel)
+-------------------------------------------------------------------------------
+- Tester en reel la recherche Pixabay avec ta cle.
+- Rendre le depot prive + changer sa description sur GitHub (Settings).
+- Neutraliser le texte de l'episode demo (parle encore d'OpenBuilds CAM).
+- Mode "propose 3 images, tu choisis" ; orientation auto selon le format.
+
+===============================================================================
