@@ -249,6 +249,11 @@ Pour ne plus toucher à la ligne de commande, il y a une **interface graphique**
 double-clic sur  start_gui.bat      (ou :  python gui.py)
 ```
 
+Pour un lancement **sans console et sans aucune demande** à chaque fois,
+double-clique **une fois** sur `creer_raccourci.bat` : il pose un raccourci
+« Générateur de vidéo » sur le Bureau (avec l'icône) qui ouvre l'appli
+directement. Ensuite tu passes par ce raccourci.
+
 **Option 2 — fabriquer un vrai `.exe` autonome** (le PC n'a plus besoin de
 Python ensuite). Sur un PC Windows (le script installe Python via winget si
 besoin) :
