@@ -15,6 +15,7 @@ un dossier d'épisode  (script.md + images/)   →   une commande   →   la vid
 - ✅ Plusieurs formats d'un coup : YouTube 16:9 **et** Short 9:16.
 - ✅ Sous-titres `.srt` générés automatiquement.
 - ✅ Voix au choix : ElevenLabs (défaut), edge-tts (gratuit), Piper (hors-ligne).
+- ✅ **Appli Windows** (fenêtre) + build en `.exe` autonome (§9).
 
 ---
 
@@ -208,7 +209,35 @@ Points de style les plus utiles : `logo.path`, `font`, `captions`,
 Le même audio sert pour tous les formats : produire `long` + `short` ne
 re-synthétise pas la voix.
 
-## 9. Dépannage
+## 9. Application Windows (fenêtre / `.exe`)
+
+Pour ne plus passer par la ligne de commande, il y a une **interface graphique**
+(`gui.py`) : tu choisis le dossier d'épisode, la voix, le format, tu colles ta
+clé ElevenLabs (mémorisée), tu cliques **Générer** et la progression s'affiche.
+
+**Option 1 — lancer la fenêtre tout de suite** (Python installé sur le PC) :
+
+```
+double-clic sur  start_gui.bat      (ou :  python gui.py)
+```
+
+**Option 2 — fabriquer un vrai `.exe` autonome** (le PC n'a plus besoin de
+Python ensuite). Sur un PC Windows avec Python :
+
+```
+double-clic sur  build_windows.bat
+→ produit  dist\OpenBuildsVideo.exe
+```
+
+Tu peux ensuite distribuer `OpenBuildsVideo.exe` et le lancer d'un double-clic.
+
+> **ffmpeg reste nécessaire à l'exécution.** Soit tu l'installes une fois
+> (`winget install Gyan.FFmpeg`), soit tu copies `ffmpeg.exe` **et**
+> `ffprobe.exe` dans un sous-dossier `bin\` à côté de l'appli : elle les
+> détecte automatiquement. La clé ElevenLabs saisie dans la fenêtre est
+> enregistrée dans `%APPDATA%\OpenBuildsVideo\settings.json`.
+
+## 10. Dépannage
 
 - **`'ffmpeg' introuvable`** → installe ffmpeg et vérifie qu'il est dans le PATH.
 - **Textes à l'écran absents** → aucune police `.ttf` trouvée ; renseigne `font`
