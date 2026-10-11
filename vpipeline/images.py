@@ -97,7 +97,18 @@ def _openverse(query: str, cfg: dict[str, Any], api_key: str | None) -> tuple[st
     return url, attribution
 
 
-_PROVIDERS = {"pixabay": _pixabay, "openverse": _openverse}
+def _pollinations(query: str, cfg: dict[str, Any], api_key: str | None) -> tuple[str | None, str | None]:
+    """Génère une image par IA (Pollinations) — GRATUIT, sans clé.
+    On construit l'URL ; l'image est créée au moment du téléchargement."""
+    ic = cfg.get("images") or {}
+    w, h = (1280, 720) if ic.get("orientation") != "vertical" else (720, 1280)
+    prompt = urllib.parse.quote(query.strip() or "illustration")
+    url = (f"https://image.pollinations.ai/prompt/{prompt}"
+           f"?width={w}&height={h}&nologo=true")
+    return url, None
+
+
+_PROVIDERS = {"pixabay": _pixabay, "openverse": _openverse, "ia": _pollinations}
 
 
 def _download(url: str, dest: Path) -> bool:

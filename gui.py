@@ -245,7 +245,7 @@ def launch() -> None:
 
     ttk.Button(btns, text="Parcourir…", command=browse).pack(side="left")
     ttk.Button(btns, text="Nouvel épisode…", command=new_episode).pack(side="left", padx=(6, 0))
-    claude_btn = ttk.Button(btns, text="✍️ Script avec Claude")
+    claude_btn = ttk.Button(btns, text="✍️ Script avec l'IA")
     claude_btn.pack(side="left", padx=(6, 0))
 
     row += 1
@@ -344,8 +344,8 @@ def launch() -> None:
     ttk.Label(frm, text="Banque d'images").grid(row=row, column=0, sticky="w", **pad)
     imgprov_var = tk.StringVar(value=st.get("image_provider", "pixabay"))
     ttk.Combobox(frm, textvariable=imgprov_var, state="readonly",
-                 values=["pixabay", "openverse"]).grid(row=row, column=1, sticky="w", **pad)
-    ttk.Label(frm, text="openverse = sans clé", foreground="#888").grid(
+                 values=["pixabay", "openverse", "ia"]).grid(row=row, column=1, sticky="w", **pad)
+    ttk.Label(frm, text="openverse / ia = sans clé", foreground="#888").grid(
         row=row, column=2, sticky="w", **pad)
 
     row += 1
@@ -359,23 +359,32 @@ def launch() -> None:
                     ).grid(row=row, column=2, **pad)
 
     row += 1
-    ttk.Label(frm, text="Clé Claude (écrire le script)").grid(row=row, column=0, sticky="w", **pad)
-    claude_key_var = tk.StringVar(value=st.get("anthropic_key", ""))
-    claude_entry = ttk.Entry(frm, textvariable=claude_key_var, show="•")
-    claude_entry.grid(row=row, column=1, sticky="ew", **pad)
-    claude_show = tk.BooleanVar(value=False)
-    ttk.Checkbutton(frm, text="voir", variable=claude_show,
-                    command=lambda: claude_entry.config(show="" if claude_show.get() else "•")
-                    ).grid(row=row, column=2, **pad)
+    ttk.Label(frm, text="IA (écrire le script)").grid(row=row, column=0, sticky="w", **pad)
+    ai_prov_var = tk.StringVar(value=st.get("ai_provider", "groq"))
+    ttk.Combobox(frm, textvariable=ai_prov_var, state="readonly",
+                 values=["groq", "claude"]).grid(row=row, column=1, sticky="w", **pad)
+    ttk.Label(frm, text="groq = gratuit", foreground="#888").grid(
+        row=row, column=2, sticky="w", **pad)
+
+    # Une clé par fournisseur, mémorisées séparément ; le champ bascule selon le choix.
+    ia_keys = {"groq": st.get("groq_key", ""), "claude": st.get("anthropic_key", "")}
+    _cur = [ai_prov_var.get()]
 
     row += 1
-    ttk.Label(frm, text="Modèle Claude").grid(row=row, column=0, sticky="w", **pad)
-    claude_model_var = tk.StringVar(value=st.get("claude_model", "claude-opus-5-5"))
-    ttk.Combobox(frm, textvariable=claude_model_var, state="readonly",
-                 values=["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"]
-                 ).grid(row=row, column=1, sticky="w", **pad)
-    ttk.Label(frm, text="haiku = le moins cher", foreground="#888").grid(
-        row=row, column=2, sticky="w", **pad)
+    ttk.Label(frm, text="Clé IA").grid(row=row, column=0, sticky="w", **pad)
+    ai_key_var = tk.StringVar(value=ia_keys.get(_cur[0], ""))
+    ai_entry = ttk.Entry(frm, textvariable=ai_key_var, show="•")
+    ai_entry.grid(row=row, column=1, sticky="ew", **pad)
+    ai_show = tk.BooleanVar(value=False)
+    ttk.Checkbutton(frm, text="voir", variable=ai_show,
+                    command=lambda: ai_entry.config(show="" if ai_show.get() else "•")
+                    ).grid(row=row, column=2, **pad)
+
+    def _on_ai_prov(*_a) -> None:
+        ia_keys[_cur[0]] = ai_key_var.get()      # sauve la clé du fournisseur précédent
+        _cur[0] = ai_prov_var.get()
+        ai_key_var.set(ia_keys.get(_cur[0], ""))  # charge celle du nouveau
+    ai_prov_var.trace_add("write", _on_ai_prov)
 
     row += 1
     opts = ttk.Frame(frm)
@@ -427,7 +436,9 @@ def launch() -> None:
             "intro": intro_var.get(), "motion": motion_var.get(),
             "pixabay_key": pix_var.get(), "auto_images": autoimg_var.get(),
             "image_provider": imgprov_var.get(),
-            "anthropic_key": claude_key_var.get(), "claude_model": claude_model_var.get(),
+            "ai_provider": ai_prov_var.get(),
+            "groq_key": (ai_key_var.get() if _cur[0] == "groq" else ia_keys.get("groq", "")),
+            "anthropic_key": (ai_key_var.get() if _cur[0] == "claude" else ia_keys.get("claude", "")),
         })
 
     log_q: "queue.Queue[str]" = queue.Queue()
@@ -532,52 +543,143 @@ def launch() -> None:
 
     gen_btn.config(command=generate)
 
-    def write_with_claude() -> None:
-        key = claude_key_var.get().strip()
+    def open_ai_dialog() -> None:
+        provider = ai_prov_var.get()
+        key = ai_key_var.get().strip()
         if not key:
-            messagebox.showinfo(APP_NAME, "Colle d'abord ta clé Claude (Anthropic).")
-            return
-        topic = simpledialog.askstring(APP_NAME, "Sujet de la vidéo :", parent=root)
-        if not topic:
-            return
-        nseg = simpledialog.askinteger(APP_NAME, "Combien de segments ?",
-                                       parent=root, initialvalue=5, minvalue=2, maxvalue=20) or 5
-        parent = filedialog.askdirectory(title="Où créer l'épisode ?")
-        if not parent:
+            where = "console.groq.com (gratuit)" if provider == "groq" else "console.anthropic.com"
+            messagebox.showinfo(APP_NAME, f"Colle d'abord ta clé {provider} — {where}.")
             return
         persist()
-        claude_btn.config(state="disabled", text="… Claude écrit")
+        from vpipeline import ai_script
+        cfg = {"ai": {"provider": provider, "key": key}}
+        conv: list[dict] = []
+        busy = {"v": False}
 
-        def worker() -> None:
-            import time
+        win = tk.Toplevel(root)
+        win.title("Écrire un script avec l'IA")
+        win.minsize(560, 560)
+        if ico:
             try:
-                from vpipeline import ai_script
-                cfg = {"ai": {"model": claude_model_var.get(), "key": key}}
-                text = ai_script.generate_script(topic, nseg, cfg, key)
-                try:
-                    ep = create_episode(parent, topic)
-                except FileExistsError:
-                    ep = create_episode(parent, f"{topic}-{int(time.time()) % 10000}")
-                (ep / "script.md").write_text(text, encoding="utf-8")
-            except Exception as exc:
-                root.after(0, lambda e=exc: (
-                    claude_btn.config(state="normal", text="✍️ Script avec Claude"),
-                    messagebox.showerror(APP_NAME, f"Échec : {e}")))
+                win.iconbitmap(str(ico))
+            except Exception:
+                pass
+
+        ttk.Label(win, text="Sujet / idée de la vidéo :").pack(anchor="w", padx=10, pady=(10, 0))
+        topic_txt = tk.Text(win, height=3, wrap="word")
+        topic_txt.pack(fill="x", padx=10)
+
+        bar = ttk.Frame(win)
+        bar.pack(fill="x", padx=10, pady=6)
+        ttk.Label(bar, text="Segments :").pack(side="left")
+        seg_var = tk.IntVar(value=5)
+        ttk.Spinbox(bar, from_=2, to=20, width=5, textvariable=seg_var).pack(side="left", padx=6)
+        gen_b = ttk.Button(bar, text="Générer le script")
+        gen_b.pack(side="left", padx=6)
+        status = tk.StringVar(value="")
+        ttk.Label(bar, textvariable=status, foreground="#888").pack(side="left", padx=6)
+
+        ttk.Label(win, text="Script (modifiable) :").pack(anchor="w", padx=10)
+        out_txt = tk.Text(win, height=16, wrap="word", bg="#101418",
+                          fg="#e6e6e6", insertbackground="#e6e6e6")
+        out_txt.pack(fill="both", expand=True, padx=10, pady=(0, 6))
+
+        ref = ttk.Frame(win)
+        ref.pack(fill="x", padx=10, pady=4)
+        ttk.Label(ref, text="Ajuster :").pack(side="left")
+        refine_var = tk.StringVar()
+        ref_entry = ttk.Entry(ref, textvariable=refine_var)
+        ref_entry.pack(side="left", fill="x", expand=True, padx=6)
+        ref_b = ttk.Button(ref, text="Affiner")
+        ref_b.pack(side="left")
+
+        bot = ttk.Frame(win)
+        bot.pack(fill="x", padx=10, pady=(0, 10))
+        make_b = ttk.Button(bot, text="✅ Créer l'épisode")
+        make_b.pack(side="right")
+
+        def set_out(t: str) -> None:
+            out_txt.delete("1.0", "end")
+            out_txt.insert("1.0", t)
+
+        def set_busy(b: bool) -> None:
+            busy["v"] = b
+            for w in (gen_b, ref_b, make_b):
+                w.config(state="disabled" if b else "normal")
+
+        def run_ai(messages: list[dict]) -> None:
+            if busy["v"]:
                 return
+            set_busy(True)
+            status.set("… l'IA réfléchit")
 
-            def done() -> None:
-                claude_btn.config(state="normal", text="✍️ Script avec Claude")
-                episode_var.set(str(ep))
-                messagebox.showinfo(
-                    APP_NAME,
-                    f"Script écrit par Claude :\n{ep / 'script.md'}\n\n"
-                    f"Ajoute des images dans images/ (ou coche la recherche auto), "
-                    f"puis clique Générer.")
-            root.after(0, done)
+            def worker() -> None:
+                try:
+                    text = ai_script.clean_script(ai_script.complete(messages, cfg, key))
+                except Exception as exc:
+                    win.after(0, lambda e=exc: (status.set("échec"), set_busy(False),
+                                                messagebox.showerror(APP_NAME, f"Échec : {e}", parent=win)))
+                    return
 
-        threading.Thread(target=worker, daemon=True).start()
+                def ok() -> None:
+                    conv.append({"role": "assistant", "content": text})
+                    set_out(text)
+                    status.set("prêt")
+                    set_busy(False)
+                win.after(0, ok)
+            threading.Thread(target=worker, daemon=True).start()
 
-    claude_btn.config(command=write_with_claude)
+        def on_generate() -> None:
+            topic = topic_txt.get("1.0", "end").strip()
+            if not topic:
+                messagebox.showinfo(APP_NAME, "Écris d'abord un sujet.", parent=win)
+                return
+            n = max(2, min(int(seg_var.get() or 5), 20))
+            conv.clear()
+            conv.append({"role": "user", "content":
+                         f"Sujet de la vidéo : {topic}\n\nÉcris le script avec exactement "
+                         f"{n} segments (en plus du titre). Narration concise pour une voix off."})
+            run_ai(list(conv))
+
+        def on_refine() -> None:
+            instr = refine_var.get().strip()
+            if not instr:
+                return
+            cur = out_txt.get("1.0", "end").strip()
+            if conv and conv[-1]["role"] == "assistant":
+                conv[-1]["content"] = cur
+            elif cur:
+                conv.append({"role": "assistant", "content": cur})
+            conv.append({"role": "user", "content": instr})
+            refine_var.set("")
+            run_ai(list(conv))
+
+        def on_make() -> None:
+            text = out_txt.get("1.0", "end").strip()
+            if not text:
+                messagebox.showinfo(APP_NAME, "Génère d'abord un script.", parent=win)
+                return
+            parent = filedialog.askdirectory(title="Où créer l'épisode ?")
+            if not parent:
+                return
+            import time
+            name = (text.splitlines()[0].lstrip("# ").strip() or "episode")[:50]
+            try:
+                ep = create_episode(parent, name)
+            except FileExistsError:
+                ep = create_episode(parent, f"{name}-{int(time.time()) % 10000}")
+            (ep / "script.md").write_text(ai_script.clean_script(text), encoding="utf-8")
+            episode_var.set(str(ep))
+            win.destroy()
+            messagebox.showinfo(
+                APP_NAME, f"Épisode créé :\n{ep}\n\n"
+                f"Choisis la source d'images (ou laisse l'IA les créer), puis Générer.")
+
+        gen_b.config(command=on_generate)
+        ref_b.config(command=on_refine)
+        make_b.config(command=on_make)
+
+    claude_btn.config(command=open_ai_dialog)
 
     def on_close() -> None:
         persist()   # mémorise la clé et les réglages même sans génération

@@ -10,7 +10,8 @@ un dossier d'épisode  (script.md + images/)   →   une commande   →   la vid
 
 - ✅ Zéro abonnement, zéro filigrane — c'est ton outil.
 - ✅ Style constant automatique : intro, textes à l'écran, bandeau sources, logo.
-- ✅ **Script écrit par Claude** à partir d'un simple sujet (option).
+- ✅ **Script écrit par une IA** dans une fenêtre de dialogue (Groq gratuit, ou Claude).
+- ✅ **Images auto** : banque (Pixabay/Openverse) **ou créées par IA** (sans clé).
 - ✅ **Crossfade** (fondu enchaîné) entre les images + zoom doux.
 - ✅ **Images de fin / gag** : un carton ou une image avec bruitage en deux lignes.
 - ✅ Plusieurs formats d'un coup : YouTube 16:9 **et** Short 9:16.
@@ -148,10 +149,11 @@ et télécharge la meilleure dans `images/` (`auto_00.jpg`, `auto_01.jpg`…).
 
 **Deux banques** (menu « Banque d'images ») :
 
-| Banque        | Clé requise | Attribution | Note |
+| Source        | Clé requise | Attribution | Note |
 |---------------|:-----------:|:-----------:|------|
 | **Pixabay**   | oui (gratuite) | non      | grande banque, photos variées |
 | **Openverse** | **non**     | oui (auto)  | Creative Commons — **sans clé**, idéal en secours |
+| **ia** (Pollinations) | **non** | non    | images **créées par IA** à la demande — sans clé |
 
 - Si tu choisis **Pixabay**, crée une clé gratuite sur
   [pixabay.com](https://pixabay.com/) → *compte → API*, colle-la dans
@@ -159,6 +161,9 @@ et télécharge la meilleure dans `images/` (`auto_00.jpg`, `auto_01.jpg`…).
   **automatiquement sur Openverse** (sans clé).
 - **Openverse** marche **sans aucune clé** : l'auteur de chaque image est crédité
   tout seul dans le bandeau « Sources » (licence Creative Commons oblige).
+- **ia** fait **créer les images par une IA** (Pollinations) à partir des mots-clés
+  du segment — **sans clé**, pratique quand aucune photo ne colle. La génération
+  prend quelques secondes par image.
 
 En ligne de commande : `--auto-images` `--image-provider pixabay|openverse`
 (et `--pixabay-key …` ou `PIXABAY_API_KEY` pour Pixabay).
@@ -167,21 +172,27 @@ En ligne de commande : `--auto-images` `--image-provider pixabay|openverse`
 > **remplacer** une image dans `images/` (garde le nom `auto_XX.jpg`) ou ajouter
 > un `[img:]` précis dans le script, puis relancer. Tu gardes la main.
 
-### Écrire le script avec Claude ✍️
+### Écrire le script avec une IA ✍️
 
-Pas d'inspiration pour le texte ? **Claude peut rédiger le script** pour toi, au
-bon format (titre, segments, `[text:]`, narration).
+Pas d'inspiration ? Une **IA peut rédiger le script** pour toi, au bon format
+(titre, segments, `[text:]`, narration). Deux fournisseurs :
 
-1. Crée une **clé API** sur [console.anthropic.com](https://console.anthropic.com/)
-   (API Keys). ⚠️ C'est une **API payante** (à l'usage), mais un script coûte
-   quelques centimes — et le modèle `claude-haiku-5-5` est le moins cher.
-2. Dans l'appli : colle la clé dans **« Clé Claude »**, choisis le **modèle**,
-   puis clique **« ✍️ Script avec Claude »** : donne un sujet + un nombre de
-   segments, et l'épisode (avec `script.md`) est créé tout seul.
-3. Ajoute des images (ou coche la recherche auto), puis **Génère**.
+| Fournisseur | Coût | Clé |
+|-------------|------|-----|
+| **Groq** (défaut) | **gratuit** | clé gratuite sur [console.groq.com](https://console.groq.com/) |
+| **Claude** (Anthropic) | payant (qq centimes/script) | [console.anthropic.com](https://console.anthropic.com/) |
+
+1. Choisis le fournisseur dans **« IA »** (groq = gratuit), colle la **clé** dans
+   **« Clé IA »** (mémorisée par fournisseur).
+2. Clique **« ✍️ Script avec l'IA »** : une **fenêtre de dialogue** s'ouvre —
+   tu écris ton sujet, l'IA rédige le script, et tu peux **l'affiner** (« plus
+   court », « ton humoristique »…) ou le **modifier à la main**, puis
+   **« Créer l'épisode »**.
+3. Choisis la source d'images (ou laisse l'**IA les créer**), puis **Génère**.
 
 En ligne de commande :
-`--write-script "ton sujet" --segments 6 --anthropic-key …` (ou `ANTHROPIC_API_KEY`).
+`--write-script "ton sujet" --segments 6 --ai-provider groq --groq-key …`
+(ou `GROQ_API_KEY` ; `--ai-provider claude --anthropic-key …` pour Claude).
 
 ## 5. Choisir la voix (TTS)
 

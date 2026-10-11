@@ -18,16 +18,17 @@ Principe :
 -------------------------------------------------------------------------------
 2. CE QUE L'APPLI SAIT FAIRE
 -------------------------------------------------------------------------------
-- Script ecrit par Claude (IA) a partir d'un simple sujet (bouton dedie,
-  cle API Anthropic requise - payant a l'usage, qq centimes par script).
+- Script ecrit par une IA dans une FENETRE DE DIALOGUE (ecrire + affiner) :
+  Groq (GRATUIT, cle gratuite) ou Claude (payant, qq centimes/script).
 - Voix off automatique a partir du texte (TTS) :
     * ElevenLabs (par defaut, la plus naturelle - necessite une cle)
     * edge-tts (gratuit), Piper (hors-ligne), dummy (muet, pour tester)
     * bouton "Charger mes voix" : liste tes voix ElevenLabs depuis ta cle
 - Images :
     * tu les mets toi-meme dans images/ (01_..., 02_... pour l'ordre), OU
-    * recherche AUTOMATIQUE selon les mots-cles du script, via 2 banques :
-      Pixabay (cle gratuite) ou Openverse (sans cle, secours automatique)
+    * recherche/creation AUTOMATIQUE selon les mots-cles du script :
+      Pixabay (cle gratuite), Openverse (sans cle), ou IA (images creees
+      par IA - Pollinations, sans cle)
 - Textes a l'ecran, bandeau "Sources", logo (optionnel), intro avec titre
 - Crossfade (fondu enchaine) entre les images + leger zoom (effet Ken Burns)
 - Images de fin / gag : une image tenue X secondes, avec un bruitage possible
@@ -101,7 +102,8 @@ Gag / carton de fin : un segment SANS narration devient une image tenue.
 - ElevenLabs (voix)  : compte sur elevenlabs.io -> Profile -> API Keys
 - Pixabay (images)   : compte sur pixabay.com -> API  (gratuit, sans attribution)
 - Openverse (images) : AUCUNE cle (banque de secours)
-- Claude (script IA) : console.anthropic.com -> API Keys  (payant a l'usage)
+- Groq (script IA)   : console.groq.com -> API Keys  (GRATUIT)
+- Claude (script IA) : console.anthropic.com -> API Keys  (payant, optionnel)
 Les cles restent sur TON PC (dossier %APPDATA%\GenerateurVideo). Si tu partages
 l'installateur, tes cles ne partent pas avec : chacun met la sienne.
 
@@ -142,8 +144,8 @@ Installer ffmpeg si besoin :  winget install Gyan.FFmpeg
 9.  Recherche d'images automatique : Pixabay (cle) + Openverse (sans cle, secours).
 10. Rangement : noms de fichiers clairs + verificateur d'installation
     (Verifier-l-installation.bat) et bilan automatique au demarrage de l'appli.
-11. Integration de Claude (IA) : bouton "Script avec Claude" qui redige le
-    script.md a partir d'un sujet (cle API Anthropic).
+11. Script ecrit par une IA : bouton "Script avec l'IA" qui redige le
+    script.md a partir d'un sujet (Groq gratuit, ou Claude payant).
 
 
 -------------------------------------------------------------------------------

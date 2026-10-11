@@ -50,13 +50,16 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--no-motion", action="store_true", help="Désactive le zoom sur les images.")
     ap.add_argument("--auto-images", action="store_true",
                     help="Cherche et télécharge les images manquantes.")
-    ap.add_argument("--image-provider", choices=["pixabay", "openverse"],
-                    help="Banque d'images (pixabay = clé requise ; openverse = sans clé).")
+    ap.add_argument("--image-provider", choices=["pixabay", "openverse", "ia"],
+                    help="Images : pixabay (clé) | openverse (sans clé) | ia (générées, sans clé).")
     ap.add_argument("--pixabay-key", help="Clé API Pixabay (sinon $PIXABAY_API_KEY).")
     ap.add_argument("--write-script", metavar="SUJET",
-                    help="Fait écrire le script.md par Claude à partir d'un sujet.")
+                    help="Fait écrire le script.md par une IA à partir d'un sujet.")
     ap.add_argument("--segments", type=int, default=5,
                     help="Nombre de segments pour --write-script (défaut: 5).")
+    ap.add_argument("--ai-provider", choices=["groq", "claude"],
+                    help="IA pour --write-script (groq = gratuit ; claude = payant).")
+    ap.add_argument("--groq-key", help="Clé API Groq (sinon $GROQ_API_KEY).")
     ap.add_argument("--anthropic-key", help="Clé API Claude (sinon $ANTHROPIC_API_KEY).")
     ap.add_argument("--keep-temp", action="store_true", help="Garde les fichiers intermédiaires.")
     args = ap.parse_args(argv)
@@ -105,13 +108,17 @@ def main(argv: list[str] | None = None) -> int:
         cfg["images"]["provider"] = args.image_provider
     if args.pixabay_key:
         cfg["images"]["key"] = args.pixabay_key
+    if args.ai_provider:
+        cfg["ai"]["provider"] = args.ai_provider
+    if args.groq_key:
+        cfg["ai"]["key"] = args.groq_key
     if args.anthropic_key:
         cfg["ai"]["key"] = args.anthropic_key
 
-    # Écriture du script par Claude (optionnel).
+    # Écriture du script par une IA (optionnel).
     if args.write_script:
         from vpipeline import ai_script
-        log(f"Claude rédige le script sur : « {args.write_script} »…")
+        log(f"L'IA rédige le script sur : « {args.write_script} »…")
         try:
             text = ai_script.generate_script(args.write_script, args.segments, cfg,
                                              cfg["ai"].get("key"))

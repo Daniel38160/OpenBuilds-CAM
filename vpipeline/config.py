@@ -40,10 +40,11 @@ DEFAULTS: dict[str, Any] = {
         "elevenlabs_model": "eleven_multilingual_v2",
     },
 
-    # Rédaction du script par Claude (API Anthropic)
+    # Rédaction du script par une IA (bouton dédié)
     "ai": {
-        "model": "claude-opus-5-5",  # modèle Claude ; haiku = moins cher
-        "key": None,                 # clé Anthropic ; sinon $ANTHROPIC_API_KEY
+        "provider": "groq",   # groq (GRATUIT) | claude (payant)
+        "model": None,        # None = modèle par défaut du fournisseur
+        "key": None,          # clé ; sinon $GROQ_API_KEY ou $ANTHROPIC_API_KEY
     },
 
     # Recherche d'images automatique (banque Pixabay) pour les segments sans image
