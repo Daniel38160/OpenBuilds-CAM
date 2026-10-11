@@ -57,7 +57,8 @@ def _list_images(images_dir: Path) -> list[Path]:
     )
 
 
-def parse_script(script_path: Path, images_dir: Path) -> Episode:
+def parse_script(script_path: Path, images_dir: Path,
+                 allow_missing: bool = False) -> Episode:
     if not script_path.exists():
         die(f"Script introuvable : {script_path}")
 
@@ -129,10 +130,11 @@ def parse_script(script_path: Path, images_dir: Path) -> Episode:
             ri += 1
 
     missing = [i for i, s in enumerate(segments) if s.image is None]
-    if missing:
+    if missing and not allow_missing:
         die(
             f"{len(missing)} segment(s) sans image et plus d'image dispo dans "
-            f"{images_dir}. Ajoute des images ou utilise [img: nom.jpg]."
+            f"{images_dir}. Ajoute des images, utilise [img: nom.jpg], ou "
+            f"active la recherche automatique d'images."
         )
     if not segments:
         die("Le script ne contient aucun segment exploitable.")

@@ -40,6 +40,16 @@ DEFAULTS: dict[str, Any] = {
         "elevenlabs_model": "eleven_multilingual_v2",
     },
 
+    # Recherche d'images automatique (banque Pixabay) pour les segments sans image
+    "images": {
+        "auto": False,              # True = cherche et télécharge les images manquantes
+        "provider": "pixabay",
+        "key": None,                # sinon variable d'env PIXABAY_API_KEY
+        "lang": "fr",               # langue des mots-clés
+        "orientation": "horizontal",  # horizontal | vertical | any
+        "safesearch": True,
+    },
+
     # Style constant de la chaîne
     "logo": {
         "path": None,               # PNG transparent conseillé

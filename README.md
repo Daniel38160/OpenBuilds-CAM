@@ -138,6 +138,24 @@ pour un gag de fin ou un carton de sortie. Deux variantes :
 Ces segments ne sont pas mis en sous-titres, et le crossfade s'applique
 normalement avant/après. Mets autant de gags que tu veux, où tu veux.
 
+### Images automatiques 🖼️ (Pixabay)
+
+Pas envie de chercher les images toi-même ? L'appli peut les **trouver toute
+seule** : pour chaque segment **sans `[img:]`**, elle prend des mots-clés (ton
+`[text:]` en priorité, sinon la phrase narrée), interroge **Pixabay** et
+télécharge la meilleure dans `images/` (nommée `auto_00.jpg`, `auto_01.jpg`…).
+
+1. Crée une **clé API gratuite** sur [pixabay.com](https://pixabay.com/) →
+   *compte → API* (gratuit, pas d'attribution requise).
+2. Dans l'appli : coche **« Chercher les images auto (Pixabay) »** et colle ta
+   clé dans **« Clé Pixabay »** (mémorisée). En ligne de commande :
+   `--auto-images` + `--pixabay-key …` (ou variable `PIXABAY_API_KEY`).
+3. Génère. Les images manquantes sont récupérées avant le montage.
+
+> Le choix automatique est pratique mais parfois « moyen » : tu peux toujours
+> **remplacer** une image dans `images/` (garde le même nom `auto_XX.jpg`, ou
+> ajoute un `[img:]` précis dans le script) et relancer. Tu gardes la main.
+
 ## 5. Choisir la voix (TTS)
 
 | Backend          | Qualité         | Hors-ligne | Mise en place                               |
@@ -173,6 +191,8 @@ python make_video.py <dossier-épisode> [options]
   --transition T       crossfade (défaut) | fade
   --no-intro           désactive l'intro
   --no-motion          désactive le zoom (effet Ken Burns) sur les images
+  --auto-images        cherche les images manquantes sur Pixabay
+  --pixabay-key CLE    clé API Pixabay (sinon variable PIXABAY_API_KEY)
   --out DOSSIER        dossier de sortie (défaut: <épisode>/output)
   --keep-temp          garde les fichiers intermédiaires (debug)
 ```

@@ -18,6 +18,14 @@ still_seconds: 2.5        # durée d'une image sans narration ([hold: N] l'écra
 background_color: "0x101418"
 font: null                # chemin d'un .ttf ; auto-détecté si null
 
+images:                   # recherche d'images automatique (segments sans image)
+  auto: false             # true = télécharge les images manquantes depuis Pixabay
+  provider: pixabay
+  key: null               # clé Pixabay ; sinon variable d'env PIXABAY_API_KEY
+  lang: fr                # langue des mots-clés
+  orientation: horizontal # horizontal | vertical | any
+  safesearch: true
+
 tts:
   backend: elevenlabs     # elevenlabs | edge | piper | espeak | dummy
   elevenlabs_voice_id: Rachel        # nom ou ID de voix (clé via $ELEVENLABS_API_KEY)

@@ -48,6 +48,9 @@ def main(argv: list[str] | None = None) -> int:
                     help="Transition entre images (défaut: crossfade).")
     ap.add_argument("--no-intro", action="store_true", help="Désactive l'intro.")
     ap.add_argument("--no-motion", action="store_true", help="Désactive le zoom sur les images.")
+    ap.add_argument("--auto-images", action="store_true",
+                    help="Cherche et télécharge les images manquantes (Pixabay).")
+    ap.add_argument("--pixabay-key", help="Clé API Pixabay (sinon $PIXABAY_API_KEY).")
     ap.add_argument("--keep-temp", action="store_true", help="Garde les fichiers intermédiaires.")
     args = ap.parse_args(argv)
 
@@ -89,12 +92,28 @@ def main(argv: list[str] | None = None) -> int:
         cfg["intro"]["enabled"] = False
     if args.no_motion:
         cfg["motion"] = False
+    if args.auto_images:
+        cfg["images"]["auto"] = True
+    if args.pixabay_key:
+        cfg["images"]["key"] = args.pixabay_key
 
     if not cfg.get("font"):
         log("Aucune police .ttf trouvée : les textes à l'écran seront désactivés "
             "par ffmpeg. Renseigne 'font' dans la config.")
 
-    episode = script_parser.parse_script(script_path, images_dir)
+    auto_images = bool(cfg["images"]["auto"])
+    episode = script_parser.parse_script(script_path, images_dir,
+                                         allow_missing=auto_images)
+
+    # Recherche automatique des images manquantes (Pixabay).
+    if auto_images:
+        from vpipeline import images as imagesmod
+        imagesmod.auto_fetch(episode, cfg, images_dir)
+        still = [i + 1 for i, s in enumerate(episode.segments) if s.image is None]
+        if still:
+            die(f"Images introuvables pour le(s) segment(s) {still}. "
+                f"Ajoute-les manuellement ou modifie le texte/[text:].")
+
     log(f"Épisode : « {episode.title} » — {len(episode.segments)} segment(s).")
 
     out_dir = Path(args.out) if args.out else ep_dir / "output"

@@ -339,12 +339,25 @@ def launch() -> None:
                  values=["crossfade", "fade"]).grid(row=row, column=1, sticky="w", **pad)
 
     row += 1
+    ttk.Label(frm, text="Clé Pixabay (images auto)").grid(row=row, column=0, sticky="w", **pad)
+    pix_var = tk.StringVar(value=st.get("pixabay_key", ""))
+    pix_entry = ttk.Entry(frm, textvariable=pix_var, show="•")
+    pix_entry.grid(row=row, column=1, sticky="ew", **pad)
+    pix_show = tk.BooleanVar(value=False)
+    ttk.Checkbutton(frm, text="voir", variable=pix_show,
+                    command=lambda: pix_entry.config(show="" if pix_show.get() else "•")
+                    ).grid(row=row, column=2, **pad)
+
+    row += 1
     opts = ttk.Frame(frm)
     opts.grid(row=row, column=0, columnspan=3, sticky="w", **pad)
     intro_var = tk.BooleanVar(value=st.get("intro", True))
     motion_var = tk.BooleanVar(value=st.get("motion", True))
+    autoimg_var = tk.BooleanVar(value=st.get("auto_images", False))
     ttk.Checkbutton(opts, text="Intro", variable=intro_var).pack(side="left", padx=6)
     ttk.Checkbutton(opts, text="Zoom (Ken Burns)", variable=motion_var).pack(side="left", padx=6)
+    ttk.Checkbutton(opts, text="Chercher les images auto (Pixabay)",
+                    variable=autoimg_var).pack(side="left", padx=6)
 
     row += 1
     gen_btn = ttk.Button(frm, text="🎬  Générer la vidéo")
@@ -383,6 +396,7 @@ def launch() -> None:
             "edge_voice": edge_voice_var.get(),
             "formats": fmt_var.get(), "transition": trans_var.get(),
             "intro": intro_var.get(), "motion": motion_var.get(),
+            "pixabay_key": pix_var.get(), "auto_images": autoimg_var.get(),
         })
 
     log_q: "queue.Queue[str]" = queue.Queue()
@@ -443,10 +457,19 @@ def launch() -> None:
                 "ffmpeg est introuvable.\n\nInstalle-le (winget install Gyan.FFmpeg) "
                 "ou place ffmpeg.exe dans un sous-dossier « bin » à côté de l'appli.")
             return
+        if autoimg_var.get() and not pix_var.get().strip():
+            messagebox.showerror(
+                APP_NAME,
+                "Recherche d'images automatique activée mais aucune clé Pixabay.\n\n"
+                "Crée une clé gratuite sur pixabay.com (API), colle-la dans « Clé Pixabay », "
+                "ou décoche l'option.")
+            return
 
         persist()
         if key_var.get().strip():
             os.environ["ELEVENLABS_API_KEY"] = key_var.get().strip()
+        if pix_var.get().strip():
+            os.environ["PIXABAY_API_KEY"] = pix_var.get().strip()
 
         out_dir = Path(ep) / "output"
         state["out_dir"] = str(out_dir)
@@ -459,6 +482,8 @@ def launch() -> None:
             argv.append("--no-intro")
         if not motion_var.get():
             argv.append("--no-motion")
+        if autoimg_var.get():
+            argv.append("--auto-images")
 
         log.config(state="normal"); log.delete("1.0", "end"); log.config(state="disabled")
         append(f"Génération de « {Path(ep).name} »…\n\n")
