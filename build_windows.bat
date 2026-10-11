@@ -7,35 +7,36 @@ rem ============================================================
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
-rem --- Detecter Python (py launcher, puis python reel) ---------------------
-rem  Le "python" du Microsoft Store (alias) renvoie une erreur a --version :
-rem  on l'ecarte en exigeant que --version reussisse.
+rem --- Detecter Python STABLE (3.13/3.12/3.11) ----------------------------
+rem  On evite les pre-versions (ex: 3.15) : elles n'ont pas de paquets prets
+rem  et forcent une compilation qui echoue souvent (DLL bloquee, Cython...).
 set "PY="
-where py >nul 2>nul && ( py -3 --version >nul 2>nul && set "PY=py -3" )
-if not defined PY ( where python >nul 2>nul && ( python --version >nul 2>nul && set "PY=python" ) )
+for %%V in (3.13 3.12 3.11) do if not defined PY ( py -%%V --version >nul 2>nul && set "PY=py -%%V" )
 
 if not defined PY (
-  echo Python non trouve. Tentative d'installation automatique via winget...
+  echo Aucune version stable de Python ^(3.11-3.13^) trouvee.
+  echo Installation de Python 3.12 via winget...
   winget install -e --id Python.Python.3.12 --scope user --accept-source-agreements --accept-package-agreements
-  rem Re-detecter (le PATH n'est pas rafraichi dans cette fenetre : on cherche aussi le chemin direct).
-  where py >nul 2>nul && ( py -3 --version >nul 2>nul && set "PY=py -3" )
-  if not defined PY for /d %%D in ("%LocalAppData%\Programs\Python\Python3*") do set "PY=%%D\python.exe"
+  rem Re-detecter (PATH non rafraichi ici : on tente aussi le chemin direct).
+  for %%V in (3.12 3.13 3.11) do if not defined PY ( py -%%V --version >nul 2>nul && set "PY=py -%%V" )
+  if not defined PY for /d %%D in ("%LocalAppData%\Programs\Python\Python31*") do if exist "%%D\python.exe" set "PY=%%D\python.exe"
 )
 
 if not defined PY (
   echo.
-  echo Python est introuvable et n'a pas pu etre installe automatiquement.
-  echo Installe-le depuis  https://www.python.org/downloads/
-  echo   -^> IMPORTANT : coche "Add Python to PATH" pendant l'installation.
-  echo Puis relance ce script.
+  echo Python 3.11/3.12/3.13 introuvable et non installable automatiquement.
+  echo Installe Python 3.12 depuis  https://www.python.org/downloads/release/python-3127/
+  echo   -^> coche "Add Python to PATH" pendant l'installation, puis relance ce script.
   goto :err
 )
 
 echo Python detecte : %PY%
 echo.
 echo === Installation des outils de build ===
-%PY% -m pip install --upgrade pip pyinstaller edge-tts pyyaml
+%PY% -m pip install --upgrade pip pyinstaller edge-tts
 if errorlevel 1 goto :err
+rem PyYAML est optionnel (configs YAML) : on l'installe en best-effort, sans bloquer.
+%PY% -m pip install pyyaml 2>nul || echo (PyYAML non installe - optionnel, les configs .json fonctionnent)
 
 echo.
 echo === Construction de l'executable ===
