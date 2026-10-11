@@ -311,6 +311,7 @@ def launch() -> None:
                     el_voice_map[v["name"]] = v["voice_id"]
                 el_voice_cb.config(values=names or ["Rachel"])
                 load_btn.config(state="normal", text="Charger mes voix")
+                persist()   # mémorise la clé dès qu'elle a servi
                 messagebox.showinfo(APP_NAME, f"{len(voices)} voix chargées. Choisis-en une dans la liste.")
             root.after(0, apply)
 
@@ -471,6 +472,12 @@ def launch() -> None:
         root.after(120, poll)
 
     gen_btn.config(command=generate)
+
+    def on_close() -> None:
+        persist()   # mémorise la clé et les réglages même sans génération
+        root.destroy()
+    root.protocol("WM_DELETE_WINDOW", on_close)
+
     root.mainloop()
 
 
