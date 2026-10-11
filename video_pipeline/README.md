@@ -15,7 +15,7 @@ un dossier d'épisode  (script.md + images/)   →   une commande   →   la vid
 - ✅ Plusieurs formats d'un coup : YouTube 16:9 **et** Short 9:16.
 - ✅ Sous-titres `.srt` générés automatiquement.
 - ✅ Voix au choix : ElevenLabs (défaut), edge-tts (gratuit), Piper (hors-ligne).
-- ✅ **Appli Windows** (fenêtre) + build en `.exe` autonome (§9).
+- ✅ **Appli Windows** (fenêtre), `.exe` autonome **et installateur partageable** (§9).
 
 ---
 
@@ -240,6 +240,24 @@ double-clic sur  build_windows.bat
 Le script **télécharge ffmpeg automatiquement** et le range dans `dist\bin\`,
 donc l'exe fonctionne **tel quel** (zéro install). Distribue le dossier `dist\`
 en entier (l'`.exe` **et** le sous-dossier `bin\`), et lance-le d'un double-clic.
+
+**Option 3 — un installateur à partager** (le plus « clé en main »). Sur un PC
+Windows avec Python :
+
+```
+double-clic sur  build_installer.bat
+→ produit  installer_output\OpenBuildsVideo-Setup.exe
+```
+
+`OpenBuildsVideo-Setup.exe` est **le seul fichier à envoyer**. La personne le
+lance : l'appli s'installe, un **raccourci Bureau** et un raccourci menu
+Démarrer sont créés, et un désinstalleur propre est ajouté — **sans droits
+administrateur** (installation par utilisateur). ffmpeg et un épisode de démo
+sont inclus dans l'installateur.
+
+> Il s'appuie sur [Inno Setup](https://jrsoftware.org/isdl.php) (gratuit) ; le
+> script l'installe tout seul via `winget` s'il manque. Le format produit est
+> un `Setup.exe` (standard, plus simple et sans admin qu'un `.msi`).
 
 > Si le téléchargement auto de ffmpeg échoue (réseau, proxy), installe-le une
 > fois (`winget install Gyan.FFmpeg`) ou copie `ffmpeg.exe` **et** `ffprobe.exe`

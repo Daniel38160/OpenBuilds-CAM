@@ -17,3 +17,6 @@ build/
 dist/
 *.spec
 OpenBuildsVideo/
+
+# Installateur Inno Setup
+installer_output/
