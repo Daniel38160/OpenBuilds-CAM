@@ -102,18 +102,110 @@ def run_pipeline(argv: list[str], log_q: "queue.Queue[str]") -> None:
 
 
 # --------------------------------------------------------------------------- #
+# Helpers métier (testables sans interface)
+# --------------------------------------------------------------------------- #
+STARTER_SCRIPT = """# Titre de l'épisode
+
+[text: Mon premier point]
+[source: ma-source.com]
+Écris ici le texte que la voix va lire à voix haute.
+Un paragraphe (séparé par une ligne vide) = un segment = une image.
+
+[text: Deuxième point]
+Ajoute autant de segments que tu veux. Mets tes images dans le
+sous-dossier images/ en les nommant 01_..., 02_... pour l'ordre.
+
+// Gag de fin optionnel : une image tenue, avec un bruitage et sans narration
+// [img: oups.png]
+// [audio: assets/pouet.wav]
+"""
+
+
+def create_episode(parent_dir: str | Path, name: str) -> Path:
+    """Crée un dossier d'épisode prêt à l'emploi (script + images/ + assets/)."""
+    safe = "".join(c for c in name.strip() if c.isalnum() or c in " -_").strip()
+    safe = safe.replace(" ", "-").lower() or "nouvel-episode"
+    ep = Path(parent_dir) / safe
+    if ep.exists():
+        raise FileExistsError(f"Le dossier existe déjà : {ep}")
+    (ep / "images").mkdir(parents=True)
+    (ep / "assets").mkdir(parents=True)
+    (ep / "script.md").write_text(STARTER_SCRIPT, encoding="utf-8")
+    return ep
+
+
+def analyze_episode(ep_dir: str | Path) -> tuple[bool, str]:
+    """Renvoie (ok, message court) décrivant l'épisode, sans lever d'exception."""
+    import make_video  # noqa: F401  (assure le sys.path)
+    from vpipeline import script_parser
+
+    ep = Path(ep_dir)
+    script = ep / "script.md"
+    if not script.exists():
+        script = ep / "script.txt"
+    images_dir = ep / "images"
+    if not script.exists():
+        return False, "Pas de script.md dans ce dossier."
+
+    n_imgs = len([p for p in images_dir.glob("*")
+                  if p.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif"}]) \
+        if images_dir.is_dir() else 0
+
+    err = io.StringIO()
+    old = sys.stderr
+    sys.stderr = err
+    try:
+        ep_obj = script_parser.parse_script(script, images_dir)
+    except SystemExit:
+        msg = err.getvalue().replace("[vpipeline] ERREUR:", "").strip()
+        return False, msg.splitlines()[0] if msg else "Script invalide."
+    except Exception as exc:
+        return False, str(exc)
+    finally:
+        sys.stderr = old
+    return True, f"« {ep_obj.title} » — {len(ep_obj.segments)} segment(s), {n_imgs} image(s)"
+
+
+def icon_path() -> Path | None:
+    for p in (HERE / "assets" / "app_icon.ico",):
+        if p.exists():
+            return p
+    return None
+
+
+# --------------------------------------------------------------------------- #
 # Interface Tkinter
 # --------------------------------------------------------------------------- #
 def launch() -> None:
     import tkinter as tk
-    from tkinter import filedialog, messagebox, ttk
+    from tkinter import filedialog, messagebox, simpledialog, ttk
 
     st = load_settings()
     root = tk.Tk()
     root.title(APP_NAME)
-    root.minsize(640, 540)
+    root.minsize(680, 600)
+
+    # Icône de la fenêtre (meilleur effort selon la plateforme).
+    ico = icon_path()
+    if ico:
+        try:
+            root.iconbitmap(str(ico))           # Windows
+        except Exception:
+            try:
+                png = HERE / "assets" / "app_icon_256.png"
+                if png.exists():
+                    root.iconphoto(True, tk.PhotoImage(file=str(png)))
+            except Exception:
+                pass
 
     pad = {"padx": 10, "pady": 6}
+    header = ttk.Frame(root)
+    header.pack(fill="x")
+    ttk.Label(header, text="🎬  OpenBuilds Video",
+              font=("", 15, "bold")).pack(side="left", padx=12, pady=(12, 2))
+    ttk.Label(header, text="script + images → vidéo",
+              foreground="#888").pack(side="left", pady=(12, 2))
+
     frm = ttk.Frame(root)
     frm.pack(fill="both", expand=True)
     frm.columnconfigure(1, weight=1)
@@ -124,11 +216,50 @@ def launch() -> None:
     episode_var = tk.StringVar(value=st.get("episode", ""))
     ttk.Entry(frm, textvariable=episode_var).grid(row=row, column=1, sticky="ew", **pad)
 
+    btns = ttk.Frame(frm)
+    btns.grid(row=row, column=2, **pad)
+
     def browse() -> None:
         d = filedialog.askdirectory(title="Choisis le dossier de l'épisode")
         if d:
             episode_var.set(d)
-    ttk.Button(frm, text="Parcourir…", command=browse).grid(row=row, column=2, **pad)
+
+    def new_episode() -> None:
+        parent = filedialog.askdirectory(title="Où créer le nouvel épisode ?")
+        if not parent:
+            return
+        name = simpledialog.askstring(APP_NAME, "Nom du nouvel épisode :",
+                                      parent=root)
+        if not name:
+            return
+        try:
+            ep = create_episode(parent, name)
+        except Exception as exc:
+            messagebox.showerror(APP_NAME, str(exc))
+            return
+        episode_var.set(str(ep))
+        messagebox.showinfo(
+            APP_NAME,
+            f"Épisode créé :\n{ep}\n\n1) Mets tes images dans images/\n"
+            f"2) Écris ta narration dans script.md\n3) Clique Générer.")
+
+    ttk.Button(btns, text="Parcourir…", command=browse).pack(side="left")
+    ttk.Button(btns, text="Nouvel épisode…", command=new_episode).pack(side="left", padx=(6, 0))
+
+    row += 1
+    info_var = tk.StringVar(value="")
+    info_lbl = ttk.Label(frm, textvariable=info_var, foreground="#2a9d8f")
+    info_lbl.grid(row=row, column=1, columnspan=2, sticky="w", padx=10)
+
+    def refresh_info(*_a) -> None:
+        ep = episode_var.get().strip()
+        if ep and Path(ep).is_dir():
+            ok, msg = analyze_episode(ep)
+            info_var.set(("✓ " if ok else "⚠ ") + msg)
+            info_lbl.config(foreground="#2a9d8f" if ok else "#e76f51")
+        else:
+            info_var.set("")
+    episode_var.trace_add("write", refresh_info)
 
     row += 1
     ttk.Label(frm, text="Voix").grid(row=row, column=0, sticky="w", **pad)
@@ -146,6 +277,47 @@ def launch() -> None:
     ttk.Checkbutton(frm, text="voir", variable=show_var,
                     command=lambda: key_entry.config(show="" if show_var.get() else "•")
                     ).grid(row=row, column=2, **pad)
+
+    row += 1
+    ttk.Label(frm, text="Voix ElevenLabs").grid(row=row, column=0, sticky="w", **pad)
+    el_voice_var = tk.StringVar(value=st.get("elevenlabs_voice", "Rachel"))
+    el_voice_cb = ttk.Combobox(frm, textvariable=el_voice_var, values=["Rachel"])
+    el_voice_cb.grid(row=row, column=1, sticky="ew", **pad)
+    el_voice_map: dict[str, str] = {}   # nom affiché -> voice_id
+
+    def load_voices() -> None:
+        api = key_var.get().strip()
+        if not api:
+            messagebox.showinfo(APP_NAME, "Colle d'abord ta clé ElevenLabs.")
+            return
+        load_btn.config(state="disabled", text="…")
+
+        def worker() -> None:
+            try:
+                from vpipeline import tts
+                voices = tts.list_elevenlabs_voices(api)
+            except Exception as exc:
+                root.after(0, lambda: (load_btn.config(state="normal", text="Charger mes voix"),
+                                       messagebox.showerror(APP_NAME, f"Impossible de charger les voix :\n{exc}")))
+                return
+
+            def apply() -> None:
+                el_voice_map.clear()
+                names = []
+                for v in voices:
+                    label = v["name"] + (f"  ({v['labels']})" if v["labels"] else "")
+                    names.append(label)
+                    el_voice_map[label] = v["voice_id"]
+                    el_voice_map[v["name"]] = v["voice_id"]
+                el_voice_cb.config(values=names or ["Rachel"])
+                load_btn.config(state="normal", text="Charger mes voix")
+                messagebox.showinfo(APP_NAME, f"{len(voices)} voix chargées. Choisis-en une dans la liste.")
+            root.after(0, apply)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    load_btn = ttk.Button(frm, text="Charger mes voix", command=load_voices)
+    load_btn.grid(row=row, column=2, **pad)
 
     row += 1
     ttk.Label(frm, text="Voix edge (si backend edge)").grid(row=row, column=0, sticky="w", **pad)
@@ -178,6 +350,9 @@ def launch() -> None:
     gen_btn.grid(row=row, column=0, **pad)
     open_btn = ttk.Button(frm, text="Ouvrir le dossier de sortie", state="disabled")
     open_btn.grid(row=row, column=1, sticky="w", **pad)
+    status_var = tk.StringVar(value="")
+    ttk.Label(frm, textvariable=status_var, foreground="#888").grid(
+        row=row, column=2, sticky="e", **pad)
 
     row += 1
     frm.rowconfigure(row, weight=1)
@@ -185,7 +360,14 @@ def launch() -> None:
                   bg="#101418", fg="#e6e6e6", insertbackground="#e6e6e6")
     log.grid(row=row, column=0, columnspan=3, sticky="nsew", **pad)
 
-    state = {"out_dir": None, "running": False}
+    state = {"out_dir": None, "running": False, "t0": 0.0}
+
+    import time
+
+    def tick() -> None:
+        if state["running"]:
+            status_var.set(f"⏱ {int(time.time() - state['t0'])} s")
+            root.after(500, tick)
 
     def append(txt: str) -> None:
         log.config(state="normal")
@@ -196,7 +378,8 @@ def launch() -> None:
     def persist() -> None:
         save_settings({
             "episode": episode_var.get(), "tts": tts_var.get(),
-            "elevenlabs_key": key_var.get(), "edge_voice": edge_voice_var.get(),
+            "elevenlabs_key": key_var.get(), "elevenlabs_voice": el_voice_var.get(),
+            "edge_voice": edge_voice_var.get(),
             "formats": fmt_var.get(), "transition": trans_var.get(),
             "intro": intro_var.get(), "motion": motion_var.get(),
         })
@@ -219,12 +402,16 @@ def launch() -> None:
 
     def finish(rc: int) -> None:
         state["running"] = False
+        elapsed = int(time.time() - state["t0"]) if state["t0"] else 0
         gen_btn.config(state="normal", text="🎬  Générer la vidéo")
         if rc == 0:
-            append("\n✅ Terminé.\n")
+            status_var.set(f"✓ fait en {elapsed} s")
+            append(f"\n✅ Terminé en {elapsed} s.\n")
             if state["out_dir"]:
                 open_btn.config(state="normal")
+                open_output()   # ouvre directement le dossier de sortie
         else:
+            status_var.set("échec")
             append("\n❌ Échec (voir les messages ci-dessus).\n")
 
     def open_output() -> None:
@@ -262,8 +449,11 @@ def launch() -> None:
 
         out_dir = Path(ep) / "output"
         state["out_dir"] = str(out_dir)
+        el_voice = el_voice_map.get(el_voice_var.get(), el_voice_var.get()).strip()
         argv = [ep, "--tts", tts_var.get(), "--formats", fmt_var.get(),
                 "--transition", trans_var.get(), "--voice", edge_voice_var.get()]
+        if el_voice:
+            argv += ["--elevenlabs-voice", el_voice]
         if not intro_var.get():
             argv.append("--no-intro")
         if not motion_var.get():
@@ -274,6 +464,9 @@ def launch() -> None:
         open_btn.config(state="disabled")
         gen_btn.config(state="disabled", text="⏳  Génération en cours…")
         state["running"] = True
+        import time
+        state["t0"] = time.time()
+        tick()
         threading.Thread(target=run_pipeline, args=(argv, log_q), daemon=True).start()
         root.after(120, poll)
 

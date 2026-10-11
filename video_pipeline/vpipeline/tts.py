@@ -121,6 +121,41 @@ def _piper(text: str, out_wav: Path, cfg: dict[str, Any]) -> None:
     tmp.unlink(missing_ok=True)
 
 
+def list_elevenlabs_voices(api_key: str) -> list[dict[str, str]]:
+    """Liste les voix du compte ElevenLabs : [{'name','voice_id','labels'}, …]."""
+    import json as _json
+    import urllib.request
+
+    req = urllib.request.Request(
+        "https://api.elevenlabs.io/v1/voices",
+        headers={"xi-api-key": api_key, "Accept": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        data = _json.loads(resp.read().decode("utf-8"))
+    out: list[dict[str, str]] = []
+    for v in data.get("voices", []):
+        labels = v.get("labels") or {}
+        desc = ", ".join(str(x) for x in labels.values()) if labels else ""
+        out.append({"name": v.get("name", "?"),
+                    "voice_id": v.get("voice_id", ""), "labels": desc})
+    return out
+
+
+def _resolve_elevenlabs_voice(api_key: str, voice: str) -> str:
+    """Accepte un ID (renvoyé tel quel) ou un NOM (résolu via l'API)."""
+    v = (voice or "").strip()
+    # Un ID ElevenLabs est une chaîne ~20 caractères alphanumériques sans espace.
+    if v and " " not in v and len(v) >= 18 and v.isalnum():
+        return v
+    try:
+        for entry in list_elevenlabs_voices(api_key):
+            if entry["name"].lower() == v.lower():
+                return entry["voice_id"]
+    except Exception:
+        pass
+    return v or "21m00Tcm4TlvDq8ikWAM"  # repli : voix "Rachel" par défaut
+
+
 def _elevenlabs(text: str, out_wav: Path, cfg: dict[str, Any]) -> None:
     import urllib.error
     import urllib.request
@@ -128,7 +163,7 @@ def _elevenlabs(text: str, out_wav: Path, cfg: dict[str, Any]) -> None:
     api_key = os.environ.get("ELEVENLABS_API_KEY")
     if not api_key:
         die("Backend 'elevenlabs' : définis la variable ELEVENLABS_API_KEY.")
-    voice_id = cfg["tts"].get("elevenlabs_voice_id", "Rachel")
+    voice_id = _resolve_elevenlabs_voice(api_key, cfg["tts"].get("elevenlabs_voice_id", "Rachel"))
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
     import json as _json
     body = _json.dumps({

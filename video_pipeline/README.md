@@ -211,9 +211,17 @@ re-synthétise pas la voix.
 
 ## 9. Application Windows (fenêtre / `.exe`)
 
-Pour ne plus passer par la ligne de commande, il y a une **interface graphique**
-(`gui.py`) : tu choisis le dossier d'épisode, la voix, le format, tu colles ta
-clé ElevenLabs (mémorisée), tu cliques **Générer** et la progression s'affiche.
+Pour ne plus toucher à la ligne de commande, il y a une **interface graphique**
+(`gui.py`). Elle permet de :
+
+- choisir un dossier d'épisode **ou en créer un tout prêt** (bouton « Nouvel
+  épisode… » : crée `images/`, `assets/` et un `script.md` de départ) ;
+- voir en direct le résumé de l'épisode (nb de segments / d'images) ;
+- choisir la voix — et, pour ElevenLabs, **charger la liste de tes voix** depuis
+  ta clé et en piocher une ;
+- coller ta clé ElevenLabs (mémorisée), choisir le format et la transition ;
+- cliquer **Générer** : progression + minuteur en direct, puis ouverture
+  automatique du dossier de sortie.
 
 **Option 1 — lancer la fenêtre tout de suite** (Python installé sur le PC) :
 
@@ -226,16 +234,18 @@ Python ensuite). Sur un PC Windows avec Python :
 
 ```
 double-clic sur  build_windows.bat
-→ produit  dist\OpenBuildsVideo.exe
+→ produit  dist\OpenBuildsVideo.exe  (avec icône) + dist\bin\ffmpeg
 ```
 
-Tu peux ensuite distribuer `OpenBuildsVideo.exe` et le lancer d'un double-clic.
+Le script **télécharge ffmpeg automatiquement** et le range dans `dist\bin\`,
+donc l'exe fonctionne **tel quel** (zéro install). Distribue le dossier `dist\`
+en entier (l'`.exe` **et** le sous-dossier `bin\`), et lance-le d'un double-clic.
 
-> **ffmpeg reste nécessaire à l'exécution.** Soit tu l'installes une fois
-> (`winget install Gyan.FFmpeg`), soit tu copies `ffmpeg.exe` **et**
-> `ffprobe.exe` dans un sous-dossier `bin\` à côté de l'appli : elle les
-> détecte automatiquement. La clé ElevenLabs saisie dans la fenêtre est
-> enregistrée dans `%APPDATA%\OpenBuildsVideo\settings.json`.
+> Si le téléchargement auto de ffmpeg échoue (réseau, proxy), installe-le une
+> fois (`winget install Gyan.FFmpeg`) ou copie `ffmpeg.exe` **et** `ffprobe.exe`
+> dans `dist\bin\` : l'appli les détecte automatiquement. La clé ElevenLabs
+> saisie dans la fenêtre est enregistrée dans
+> `%APPDATA%\OpenBuildsVideo\settings.json`.
 
 ## 10. Dépannage
 

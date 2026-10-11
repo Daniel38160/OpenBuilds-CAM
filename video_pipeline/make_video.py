@@ -41,7 +41,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", help="Dossier de sortie (défaut: <épisode>/output).")
     ap.add_argument("--formats", help="Formats séparés par des virgules (long,short,square,1280x720).")
     ap.add_argument("--tts", help="Backend TTS : elevenlabs|edge|piper|espeak|dummy.")
-    ap.add_argument("--voice", help="Voix TTS (ex: fr-FR-DeniseNeural).")
+    ap.add_argument("--voice", help="Voix edge-tts (ex: fr-FR-DeniseNeural).")
+    ap.add_argument("--elevenlabs-voice", dest="el_voice",
+                    help="Voix ElevenLabs (nom ou ID).")
     ap.add_argument("--transition", choices=["crossfade", "fade"],
                     help="Transition entre images (défaut: crossfade).")
     ap.add_argument("--no-intro", action="store_true", help="Désactive l'intro.")
@@ -79,6 +81,8 @@ def main(argv: list[str] | None = None) -> int:
         cfg["tts"]["backend"] = args.tts
     if args.voice:
         cfg["tts"]["voice"] = args.voice
+    if args.el_voice:
+        cfg["tts"]["elevenlabs_voice_id"] = args.el_voice
     if args.transition:
         cfg["transition"] = args.transition
     if args.no_intro:
