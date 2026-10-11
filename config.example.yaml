@@ -19,8 +19,9 @@ background_color: "0x101418"
 font: null                # chemin d'un .ttf ; auto-détecté si null
 
 images:                   # recherche d'images automatique (segments sans image)
-  auto: false             # true = télécharge les images manquantes depuis Pixabay
-  provider: pixabay
+  auto: false             # true = télécharge les images manquantes
+  provider: pixabay       # banque principale : pixabay | openverse
+  fallback: openverse     # banque de secours si la principale échoue (sans clé)
   key: null               # clé Pixabay ; sinon variable d'env PIXABAY_API_KEY
   lang: fr                # langue des mots-clés
   orientation: horizontal # horizontal | vertical | any

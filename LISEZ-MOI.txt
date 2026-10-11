@@ -24,7 +24,8 @@ Principe :
     * bouton "Charger mes voix" : liste tes voix ElevenLabs depuis ta cle
 - Images :
     * tu les mets toi-meme dans images/ (01_..., 02_... pour l'ordre), OU
-    * recherche AUTOMATIQUE sur Pixabay selon les mots-cles du script
+    * recherche AUTOMATIQUE selon les mots-cles du script, via 2 banques :
+      Pixabay (cle gratuite) ou Openverse (sans cle, secours automatique)
 - Textes a l'ecran, bandeau "Sources", logo (optionnel), intro avec titre
 - Crossfade (fondu enchaine) entre les images + leger zoom (effet Ken Burns)
 - Images de fin / gag : une image tenue X secondes, avec un bruitage possible
@@ -38,7 +39,13 @@ Principe :
 3. COMMENT S'EN SERVIR (fenetre)
 -------------------------------------------------------------------------------
 Lancer l'appli :
-   - double-clic sur  start_gui.bat   (Python requis sur le PC)
+   - double-clic sur  Lancer-l-appli.bat   (Python requis sur le PC)
+   - ou cree une icone sur le Bureau : double-clic sur
+     Creer-un-raccourci-Bureau.bat (une seule fois), puis utilise l'icone.
+
+Verifier que tout est installe :
+   - double-clic sur  Verifier-l-installation.bat  (rapport OK/manquant)
+   - l'appli fait aussi ce bilan automatiquement a l'ouverture.
 
 Dans la fenetre :
    1. "Parcourir..." pour choisir un dossier d'episode
@@ -46,7 +53,8 @@ Dans la fenetre :
    2. Choisir la voix :
         - elevenlabs : coller la cle, "Charger mes voix", choisir une voix
         - ou "dummy" pour un test muet sans cle
-   3. (Option) cocher "Chercher les images auto (Pixabay)" + coller la cle Pixabay
+   3. (Option) cocher "Chercher les images automatiquement" + choisir la banque
+      (Pixabay avec cle, ou Openverse sans cle)
    4. Choisir le format (long / short / square) et la transition
    5. Cliquer "Generer la video"
    -> la video + le .srt arrivent dans le sous-dossier  output/
@@ -97,9 +105,9 @@ l'installateur, tes cles ne partent pas avec : chacun met la sienne.
 -------------------------------------------------------------------------------
 6. PARTAGER L'APPLI (pour quelqu'un sans Python)
 -------------------------------------------------------------------------------
-- build_windows.bat    -> fabrique  dist\GenerateurVideo.exe  (ffmpeg inclus,
+- Construire-l-exe.bat    -> fabrique  dist\GenerateurVideo.exe  (ffmpeg inclus,
                           Python stable installe tout seul au besoin)
-- build_installer.bat  -> fabrique  installer_output\GenerateurVideo-Setup.exe
+- Construire-l-installateur.bat  -> fabrique  installer_output\GenerateurVideo-Setup.exe
                           = LE fichier a envoyer. L'autre personne le lance :
                           installation + raccourci Bureau, sans droits admin.
 
@@ -107,7 +115,7 @@ l'installateur, tes cles ne partent pas avec : chacun met la sienne.
 -------------------------------------------------------------------------------
 7. CE QU'IL FAUT SUR LE PC
 -------------------------------------------------------------------------------
-- Pour UTILISER l'appli (start_gui.bat) : Python + ffmpeg.
+- Pour UTILISER l'appli (Lancer-l-appli.bat) : Python + ffmpeg.
 - Pour FABRIQUER l'exe/installateur : Python (3.12/3.13), le reste s'installe seul.
 - Pour UTILISER l'exe deja fabrique : rien (ffmpeg est embarque).
 Installer ffmpeg si besoin :  winget install Gyan.FFmpeg
@@ -127,7 +135,9 @@ Installer ffmpeg si besoin :  winget install Gyan.FFmpeg
     PyYAML rendu optionnel.
 7.  Renommage de l'appli en "Generateur de video".
 8.  Cle(s) memorisee(s) de facon fiable (a la fermeture aussi).
-9.  Recherche d'images automatique via Pixabay (nouveau).
+9.  Recherche d'images automatique : Pixabay (cle) + Openverse (sans cle, secours).
+10. Rangement : noms de fichiers clairs + verificateur d'installation
+    (Verifier-l-installation.bat) et bilan automatique au demarrage de l'appli.
 
 
 -------------------------------------------------------------------------------

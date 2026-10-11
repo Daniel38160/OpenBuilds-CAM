@@ -49,7 +49,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--no-intro", action="store_true", help="Désactive l'intro.")
     ap.add_argument("--no-motion", action="store_true", help="Désactive le zoom sur les images.")
     ap.add_argument("--auto-images", action="store_true",
-                    help="Cherche et télécharge les images manquantes (Pixabay).")
+                    help="Cherche et télécharge les images manquantes.")
+    ap.add_argument("--image-provider", choices=["pixabay", "openverse"],
+                    help="Banque d'images (pixabay = clé requise ; openverse = sans clé).")
     ap.add_argument("--pixabay-key", help="Clé API Pixabay (sinon $PIXABAY_API_KEY).")
     ap.add_argument("--keep-temp", action="store_true", help="Garde les fichiers intermédiaires.")
     args = ap.parse_args(argv)
@@ -94,6 +96,8 @@ def main(argv: list[str] | None = None) -> int:
         cfg["motion"] = False
     if args.auto_images:
         cfg["images"]["auto"] = True
+    if args.image_provider:
+        cfg["images"]["provider"] = args.image_provider
     if args.pixabay_key:
         cfg["images"]["key"] = args.pixabay_key
 

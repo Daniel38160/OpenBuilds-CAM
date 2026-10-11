@@ -138,23 +138,33 @@ pour un gag de fin ou un carton de sortie. Deux variantes :
 Ces segments ne sont pas mis en sous-titres, et le crossfade s'applique
 normalement avant/après. Mets autant de gags que tu veux, où tu veux.
 
-### Images automatiques 🖼️ (Pixabay)
+### Images automatiques 🖼️
 
 Pas envie de chercher les images toi-même ? L'appli peut les **trouver toute
 seule** : pour chaque segment **sans `[img:]`**, elle prend des mots-clés (ton
-`[text:]` en priorité, sinon la phrase narrée), interroge **Pixabay** et
-télécharge la meilleure dans `images/` (nommée `auto_00.jpg`, `auto_01.jpg`…).
+`[text:]` en priorité, sinon la phrase narrée), interroge une banque d'images
+et télécharge la meilleure dans `images/` (`auto_00.jpg`, `auto_01.jpg`…).
 
-1. Crée une **clé API gratuite** sur [pixabay.com](https://pixabay.com/) →
-   *compte → API* (gratuit, pas d'attribution requise).
-2. Dans l'appli : coche **« Chercher les images auto (Pixabay) »** et colle ta
-   clé dans **« Clé Pixabay »** (mémorisée). En ligne de commande :
-   `--auto-images` + `--pixabay-key …` (ou variable `PIXABAY_API_KEY`).
-3. Génère. Les images manquantes sont récupérées avant le montage.
+**Deux banques** (menu « Banque d'images ») :
+
+| Banque        | Clé requise | Attribution | Note |
+|---------------|:-----------:|:-----------:|------|
+| **Pixabay**   | oui (gratuite) | non      | grande banque, photos variées |
+| **Openverse** | **non**     | oui (auto)  | Creative Commons — **sans clé**, idéal en secours |
+
+- Si tu choisis **Pixabay**, crée une clé gratuite sur
+  [pixabay.com](https://pixabay.com/) → *compte → API*, colle-la dans
+  « Clé Pixabay ». **Si Pixabay échoue** (pas de clé, panne), l'appli bascule
+  **automatiquement sur Openverse** (sans clé).
+- **Openverse** marche **sans aucune clé** : l'auteur de chaque image est crédité
+  tout seul dans le bandeau « Sources » (licence Creative Commons oblige).
+
+En ligne de commande : `--auto-images` `--image-provider pixabay|openverse`
+(et `--pixabay-key …` ou `PIXABAY_API_KEY` pour Pixabay).
 
 > Le choix automatique est pratique mais parfois « moyen » : tu peux toujours
-> **remplacer** une image dans `images/` (garde le même nom `auto_XX.jpg`, ou
-> ajoute un `[img:]` précis dans le script) et relancer. Tu gardes la main.
+> **remplacer** une image dans `images/` (garde le nom `auto_XX.jpg`) ou ajouter
+> un `[img:]` précis dans le script, puis relancer. Tu gardes la main.
 
 ## 5. Choisir la voix (TTS)
 
@@ -246,20 +256,25 @@ Pour ne plus toucher à la ligne de commande, il y a une **interface graphique**
 **Option 1 — lancer la fenêtre tout de suite** (Python installé sur le PC) :
 
 ```
-double-clic sur  start_gui.bat      (ou :  python gui.py)
+double-clic sur  Lancer-l-appli.bat      (ou :  python gui.py)
 ```
 
 Pour un lancement **sans console et sans aucune demande** à chaque fois,
-double-clique **une fois** sur `creer_raccourci.bat` : il pose un raccourci
+double-clique **une fois** sur `Creer-un-raccourci-Bureau.bat` : il pose un raccourci
 « Générateur de vidéo » sur le Bureau (avec l'icône) qui ouvre l'appli
 directement. Ensuite tu passes par ce raccourci.
+
+> Un doute sur ce qui est installé ? Double-clique sur
+> **`Verifier-l-installation.bat`** : il affiche un rapport ✓/✗ (Python, ffmpeg,
+> ffprobe…) avec la solution si un élément manque. L'appli fait aussi ce bilan
+> automatiquement à chaque ouverture.
 
 **Option 2 — fabriquer un vrai `.exe` autonome** (le PC n'a plus besoin de
 Python ensuite). Sur un PC Windows (le script installe Python via winget si
 besoin) :
 
 ```
-double-clic sur  build_windows.bat
+double-clic sur  Construire-l-exe.bat
 → produit  dist\GenerateurVideo.exe  (avec icône) + dist\bin\ffmpeg
 ```
 
@@ -271,7 +286,7 @@ en entier (l'`.exe` **et** le sous-dossier `bin\`), et lance-le d'un double-clic
 Windows (Python et Inno Setup installés automatiquement si besoin) :
 
 ```
-double-clic sur  build_installer.bat
+double-clic sur  Construire-l-installateur.bat
 → produit  installer_output\GenerateurVideo-Setup.exe
 ```
 
@@ -294,7 +309,7 @@ sont inclus dans l'installateur.
 ## 10. Dépannage
 
 - **`Python was not found… Microsoft Store`** (pendant un build) → Python n'est
-  pas installé. `build_windows.bat` tente de l'installer via winget ; sinon
+  pas installé. `Construire-l-exe.bat` tente de l'installer via winget ; sinon
   installe-le depuis [python.org](https://www.python.org/downloads/) en cochant
   **« Add Python to PATH »**, puis relance. (Astuce : si le faux « python » du
   Store gêne, désactive-le dans *Paramètres → Applications → Alias d'exécution*.)
@@ -303,6 +318,32 @@ sont inclus dans l'installateur.
   dans la config (chemin d'un `.ttf`).
 - **edge-tts échoue** → pas de réseau ou voix invalide ; teste avec `--tts dummy`.
 - **Config YAML refusée** → `pip install pyyaml`, ou utilise un fichier `.json`.
+
+## 11. Les fichiers du projet (qui fait quoi)
+
+Les scripts qu'on **double-clique** (noms explicites) :
+
+| Fichier                          | Rôle |
+|----------------------------------|------|
+| `Lancer-l-appli.bat`             | ouvre l'appli (fenêtre) |
+| `Creer-un-raccourci-Bureau.bat`  | pose un raccourci sur le Bureau (lancement sans console) |
+| `Verifier-l-installation.bat`    | vérifie que tout le nécessaire est présent (✓/✗) |
+| `Construire-l-exe.bat`           | fabrique `GenerateurVideo.exe` (pour partager) |
+| `Construire-l-installateur.bat`  | fabrique l'installateur `GenerateurVideo-Setup.exe` |
+
+Le reste :
+
+| Élément                | Rôle |
+|------------------------|------|
+| `LISEZ-MOI.txt`        | récap simple en français |
+| `gui.py`               | l'interface graphique |
+| `make_video.py`        | le moteur en ligne de commande |
+| `vpipeline/`           | le code du pipeline (voix, images, montage) |
+| `check_setup.py`       | la vérification d'installation |
+| `config.example.yaml`  | modèle de style de chaîne (optionnel) |
+| `episodes/`            | tes épisodes (script + images) ; `demo/` en exemple |
+| `assets/`              | l'icône de l'appli |
+| `GenerateurVideo.iss`  | recette de l'installateur (Inno Setup) |
 
 ---
 

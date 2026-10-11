@@ -43,8 +43,9 @@ DEFAULTS: dict[str, Any] = {
     # Recherche d'images automatique (banque Pixabay) pour les segments sans image
     "images": {
         "auto": False,              # True = cherche et télécharge les images manquantes
-        "provider": "pixabay",
-        "key": None,                # sinon variable d'env PIXABAY_API_KEY
+        "provider": "pixabay",      # banque principale : pixabay | openverse
+        "fallback": "openverse",    # banque de secours si la principale échoue (sans clé)
+        "key": None,                # clé Pixabay ; sinon variable d'env PIXABAY_API_KEY
         "lang": "fr",               # langue des mots-clés
         "orientation": "horizontal",  # horizontal | vertical | any
         "safesearch": True,

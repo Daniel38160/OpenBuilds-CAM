@@ -6,8 +6,8 @@
 ;  et un raccourci dans le menu Demarrer, et ajoute un desinstalleur propre.
 ;  Installation par utilisateur -> AUCUN droit administrateur requis.
 ;
-;  Prerequis : dist\GenerateurVideo.exe doit exister (lance build_windows.bat
-;  avant, ou utilise build_installer.bat qui enchaine les deux etapes).
+;  Prerequis : dist\GenerateurVideo.exe doit exister (lance Construire-l-exe.bat
+;  avant, ou utilise Construire-l-installateur.bat qui enchaine les deux etapes).
 ; ============================================================================
 
 #define MyAppName "Generateur de video"
@@ -43,7 +43,7 @@ Name: "desktopicon"; Description: "Créer un raccourci sur le Bureau"; \
 
 [Files]
 Source: "dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-; ffmpeg embarque (si present a cote de l'exe apres build_windows.bat)
+; ffmpeg embarque (si present a cote de l'exe apres Construire-l-exe.bat)
 Source: "dist\bin\*"; DestDir: "{app}\bin"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist
 ; Episode de demonstration pour tester tout de suite
 Source: "episodes\demo\*"; DestDir: "{app}\episodes\demo"; Flags: ignoreversion recursesubdirs createallsubdirs skipifsourcedoesntexist

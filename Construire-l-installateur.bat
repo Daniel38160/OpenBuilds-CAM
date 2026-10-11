@@ -12,7 +12,7 @@ cd /d "%~dp0"
 rem --- 1) S'assurer que dist\GenerateurVideo.exe existe --------------------
 if not exist "dist\GenerateurVideo.exe" (
   echo === Etape 1 : construction de l'application ===
-  call build_windows.bat
+  call Construire-l-exe.bat
   if errorlevel 1 goto :err
 ) else (
   echo Application deja construite ^(dist\GenerateurVideo.exe^).

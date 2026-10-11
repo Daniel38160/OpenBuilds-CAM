@@ -1,11 +1,14 @@
-"""Recherche d'images automatique via une banque d'images (Pixabay).
+"""Recherche d'images automatique, avec deux banques :
 
-Pour chaque segment sans image, on extrait des mots-clés (le texte à l'écran
-`[text:]` en priorité, sinon la narration), on interroge la banque et on
-télécharge la meilleure image dans le dossier images/ de l'épisode.
+  - pixabay   : gratuit, nécessite une clé API, aucune attribution requise.
+  - openverse : Creative Commons, AUCUNE clé requise (banque de secours) ;
+                l'attribution de l'auteur est ajoutée au bandeau « Sources ».
 
-Clé API : variable d'environnement PIXABAY_API_KEY, ou cfg["images"]["key"].
-Pixabay est gratuit et n'impose aucune attribution.
+Comportement : on interroge la banque choisie (provider), et si elle ne donne
+rien (pas de clé, panne, aucun résultat), on bascule sur la banque de secours
+(fallback). Ainsi la recherche d'images marche même sans clé Pixabay.
+
+Clé Pixabay : variable d'environnement PIXABAY_API_KEY ou cfg["images"]["key"].
 """
 from __future__ import annotations
 
@@ -20,7 +23,8 @@ from typing import Any
 from .script_parser import Episode
 from .util import die, log
 
-# Petits mots français/anglais à ignorer dans les mots-clés.
+_UA = {"User-Agent": "GenerateurVideo/1.0 (+https://github.com/)"}
+
 _STOP = {
     "le", "la", "les", "un", "une", "des", "de", "du", "et", "ou", "à", "au",
     "aux", "en", "dans", "sur", "sous", "pour", "par", "avec", "sans", "ce",
@@ -35,84 +39,127 @@ _STOP = {
 
 def keywords(caption: str | None, narration: str, max_words: int = 5) -> str:
     """Construit une requête de mots-clés à partir du segment."""
-    source = (caption or narration or "").strip()
-    if caption:  # un [text:] est déjà court et pertinent
-        words = re.findall(r"[^\W\d_]{3,}", caption, flags=re.UNICODE)
-    else:
-        words = re.findall(r"[^\W\d_]{3,}", narration, flags=re.UNICODE)
+    base = caption or narration or ""
+    words = re.findall(r"[^\W\d_]{3,}", caption if caption else narration,
+                       flags=re.UNICODE)
     kept = [w for w in words if w.lower() not in _STOP][:max_words]
-    return " ".join(kept) if kept else source[:40]
+    return " ".join(kept) if kept else base[:40]
 
 
-def _resolve_key(cfg: dict[str, Any]) -> str:
-    key = os.environ.get("PIXABAY_API_KEY") or (cfg.get("images") or {}).get("key")
-    if not key:
-        die("Recherche d'images : renseigne ta clé Pixabay "
-            "(variable PIXABAY_API_KEY, champ dans l'appli, ou images.key).")
-    return str(key)
-
-
-def _pixabay_search(query: str, cfg: dict[str, Any], api_key: str) -> str | None:
-    """Renvoie l'URL de la meilleure image, ou None."""
-    img_cfg = cfg.get("images") or {}
-    params = {
-        "key": api_key,
-        "q": query,
-        "image_type": "photo",
-        "safesearch": "true" if img_cfg.get("safesearch", True) else "false",
-        "per_page": "5",
-        "lang": img_cfg.get("lang", "fr"),
-    }
-    orient = img_cfg.get("orientation", "horizontal")
-    if orient in ("horizontal", "vertical"):
-        params["orientation"] = orient
-    url = "https://pixabay.com/api/?" + urllib.parse.urlencode(params)
-    req = urllib.request.Request(url, headers={"User-Agent": "GenerateurVideo/1.0"})
+def _get_json(url: str) -> dict[str, Any] | None:
     try:
+        req = urllib.request.Request(url, headers=_UA)
         with urllib.request.urlopen(req, timeout=30) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+            return json.loads(resp.read().decode("utf-8"))
     except Exception as exc:
-        log(f"  Pixabay: erreur réseau ({exc})")
+        log(f"  réseau: {exc}")
         return None
-    hits = data.get("hits") or []
+
+
+# --------------------------------------------------------------------------- #
+# Banques d'images -> renvoient (url_image, attribution_ou_None)
+# --------------------------------------------------------------------------- #
+def _pixabay(query: str, cfg: dict[str, Any], api_key: str | None) -> tuple[str | None, str | None]:
+    if not api_key:
+        return None, None
+    ic = cfg.get("images") or {}
+    params = {
+        "key": api_key, "q": query, "image_type": "photo",
+        "safesearch": "true" if ic.get("safesearch", True) else "false",
+        "per_page": "5", "lang": ic.get("lang", "fr"),
+    }
+    if ic.get("orientation") in ("horizontal", "vertical"):
+        params["orientation"] = ic["orientation"]
+    data = _get_json("https://pixabay.com/api/?" + urllib.parse.urlencode(params))
+    hits = (data or {}).get("hits") or []
     if not hits:
-        return None
+        return None, None
     h = hits[0]
-    return h.get("largeImageURL") or h.get("fullHDURL") or h.get("webformatURL")
+    return h.get("largeImageURL") or h.get("fullHDURL") or h.get("webformatURL"), None
+
+
+def _openverse(query: str, cfg: dict[str, Any], api_key: str | None) -> tuple[str | None, str | None]:
+    params = {
+        "q": query, "page_size": "5",
+        "license_type": "commercial",   # réutilisable, y compris commercial
+        "mature": "false",
+    }
+    data = _get_json("https://api.openverse.org/v1/images/?" + urllib.parse.urlencode(params))
+    results = (data or {}).get("results") or []
+    if not results:
+        return None, None
+    r = results[0]
+    url = r.get("url")
+    creator = r.get("creator") or "auteur inconnu"
+    lic = (r.get("license") or "").upper()
+    ver = r.get("license_version") or ""
+    attribution = f"{creator} / CC {lic} {ver}".strip() + " (Openverse)"
+    return url, attribution
+
+
+_PROVIDERS = {"pixabay": _pixabay, "openverse": _openverse}
 
 
 def _download(url: str, dest: Path) -> bool:
-    req = urllib.request.Request(url, headers={"User-Agent": "GenerateurVideo/1.0"})
     try:
+        req = urllib.request.Request(url, headers=_UA)
         with urllib.request.urlopen(req, timeout=60) as resp:
             dest.write_bytes(resp.read())
-        return dest.stat().st_size > 0
+        return dest.stat().st_size > 1000
     except Exception as exc:
         log(f"  téléchargement échoué ({exc})")
         return False
 
 
+def _resolve_key(cfg: dict[str, Any]) -> str | None:
+    return os.environ.get("PIXABAY_API_KEY") or (cfg.get("images") or {}).get("key")
+
+
 def auto_fetch(episode: Episode, cfg: dict[str, Any], images_dir: Path) -> int:
     """Télécharge une image pour chaque segment sans image. Retourne le nombre
-    d'images récupérées."""
+    d'images récupérées. Essaie la banque 'provider' puis, à défaut, 'fallback'."""
     needing = [(i, s) for i, s in enumerate(episode.segments) if s.image is None]
     if not needing:
         return 0
 
-    api_key = _resolve_key(cfg)
+    ic = cfg.get("images") or {}
+    provider = str(ic.get("provider", "pixabay")).lower()
+    fallback = str(ic.get("fallback") or "").lower() or None
+    pix_key = _resolve_key(cfg)
+
+    # Ordre d'essai des banques (sans doublon).
+    order = [p for p in (provider, fallback) if p in _PROVIDERS]
+    if not order:
+        order = ["openverse"]
+    # Si Pixabay est demandé sans clé, on prévient mais on continue (fallback).
+    if "pixabay" in order and not pix_key:
+        if "openverse" in order:
+            log("Pixabay sans clé : bascule automatique sur Openverse (sans clé).")
+        else:
+            die("Pixabay : renseigne ta clé (PIXABAY_API_KEY / champ dans l'appli), "
+                "ou choisis Openverse (sans clé).")
+
     images_dir.mkdir(parents=True, exist_ok=True)
     got = 0
     for i, seg in needing:
         q = keywords(seg.caption, seg.narration)
-        log(f"recherche d'image {i + 1} : « {q} »")
-        url = _pixabay_search(q, cfg, api_key)
+        url = attribution = None
+        used = ""
+        for prov in order:
+            url, attribution = _PROVIDERS[prov](q, cfg, pix_key)
+            if url:
+                used = prov
+                break
         if not url:
-            log(f"  aucune image trouvée pour « {q} »")
+            log(f"segment {i + 1} : aucune image trouvée pour « {q} »")
             continue
         dest = images_dir / f"auto_{i:02d}.jpg"
+        log(f"segment {i + 1} : image « {q} » via {used}")
         if _download(url, dest):
             seg.image = dest
             got += 1
-        # Pixabay n'exige pas d'attribution : on ne touche pas au bandeau sources.
+            # Openverse (CC) : on crédite l'auteur dans le bandeau Sources.
+            if attribution and not seg.source:
+                seg.source = attribution
     log(f"{got}/{len(needing)} image(s) récupérée(s) automatiquement.")
     return got
