@@ -1,4 +1,4 @@
-# 🎬 video_pipeline — voix + images → vidéo
+# 🎬 Générateur de vidéo — voix + images → vidéo
 
 Mini pipeline Python pour produire une vidéo par épisode à partir d'un **script**
 (lu par une voix de synthèse) et d'un **dossier d'images**. Pensé pour une
@@ -235,7 +235,7 @@ besoin) :
 
 ```
 double-clic sur  build_windows.bat
-→ produit  dist\OpenBuildsVideo.exe  (avec icône) + dist\bin\ffmpeg
+→ produit  dist\GenerateurVideo.exe  (avec icône) + dist\bin\ffmpeg
 ```
 
 Le script **télécharge ffmpeg automatiquement** et le range dans `dist\bin\`,
@@ -247,10 +247,10 @@ Windows (Python et Inno Setup installés automatiquement si besoin) :
 
 ```
 double-clic sur  build_installer.bat
-→ produit  installer_output\OpenBuildsVideo-Setup.exe
+→ produit  installer_output\GenerateurVideo-Setup.exe
 ```
 
-`OpenBuildsVideo-Setup.exe` est **le seul fichier à envoyer**. La personne le
+`GenerateurVideo-Setup.exe` est **le seul fichier à envoyer**. La personne le
 lance : l'appli s'installe, un **raccourci Bureau** et un raccourci menu
 Démarrer sont créés, et un désinstalleur propre est ajouté — **sans droits
 administrateur** (installation par utilisateur). ffmpeg et un épisode de démo
@@ -264,7 +264,7 @@ sont inclus dans l'installateur.
 > fois (`winget install Gyan.FFmpeg`) ou copie `ffmpeg.exe` **et** `ffprobe.exe`
 > dans `dist\bin\` : l'appli les détecte automatiquement. La clé ElevenLabs
 > saisie dans la fenêtre est enregistrée dans
-> `%APPDATA%\OpenBuildsVideo\settings.json`.
+> `%APPDATA%\GenerateurVideo\settings.json`.
 
 ## 10. Dépannage
 
@@ -281,5 +281,4 @@ sont inclus dans l'installateur.
 
 ---
 
-Fait partie du dépôt OpenBuilds-CAM, mais **totalement autonome** : ce dossier
-ne dépend de rien d'autre dans le repo.
+Projet **autonome** : il ne dépend que de Python + ffmpeg (voir §1).

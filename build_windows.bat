@@ -1,8 +1,8 @@
 @echo off
 rem ============================================================
-rem  Fabrique OpenBuildsVideo.exe (appli Windows autonome).
+rem  Fabrique GenerateurVideo.exe (appli Windows autonome).
 rem  A lancer UNE FOIS sur un PC Windows (installe Python via winget au besoin).
-rem  Resultat : dist\OpenBuildsVideo.exe (+ dist\bin\ffmpeg)
+rem  Resultat : dist\GenerateurVideo.exe (+ dist\bin\ffmpeg)
 rem ============================================================
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
@@ -40,7 +40,7 @@ rem PyYAML est optionnel (configs YAML) : on l'installe en best-effort, sans blo
 
 echo.
 echo === Construction de l'executable ===
-%PY% -m PyInstaller --noconfirm --onefile --windowed --name OpenBuildsVideo ^
+%PY% -m PyInstaller --noconfirm --onefile --windowed --name GenerateurVideo ^
   --icon assets\app_icon.ico ^
   --collect-submodules vpipeline ^
   --hidden-import make_video ^
@@ -72,7 +72,7 @@ if not exist "dist\bin\ffmpeg.exe" (
 
 echo.
 echo ============================================================
-echo  OK  -^>  dist\OpenBuildsVideo.exe
+echo  OK  -^>  dist\GenerateurVideo.exe
 echo ============================================================
 echo.
 if exist "dist\bin\ffmpeg.exe" (

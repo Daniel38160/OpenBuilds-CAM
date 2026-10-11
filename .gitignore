@@ -16,7 +16,7 @@ venv/
 build/
 dist/
 *.spec
-OpenBuildsVideo/
+GenerateurVideo/
 
 # Installateur Inno Setup
 installer_output/

@@ -1,7 +1,7 @@
 @echo off
 rem ============================================================
 rem  Fabrique l'installateur partageable :
-rem     installer_output\OpenBuildsVideo-Setup.exe
+rem     installer_output\GenerateurVideo-Setup.exe
 rem
 rem  Enchaine : (1) build de l'exe + ffmpeg, (2) compilation Inno Setup.
 rem  A lancer sur un PC Windows avec Python installe.
@@ -9,13 +9,13 @@ rem ============================================================
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
-rem --- 1) S'assurer que dist\OpenBuildsVideo.exe existe --------------------
-if not exist "dist\OpenBuildsVideo.exe" (
+rem --- 1) S'assurer que dist\GenerateurVideo.exe existe --------------------
+if not exist "dist\GenerateurVideo.exe" (
   echo === Etape 1 : construction de l'application ===
   call build_windows.bat
   if errorlevel 1 goto :err
 ) else (
-  echo Application deja construite ^(dist\OpenBuildsVideo.exe^).
+  echo Application deja construite ^(dist\GenerateurVideo.exe^).
 )
 
 rem --- 2) Localiser le compilateur Inno Setup (ISCC.exe) -------------------
@@ -48,12 +48,12 @@ if not defined ISCC (
 rem --- 3) Compiler l'installateur -----------------------------------------
 echo.
 echo === Etape 2 : compilation de l'installateur ===
-"%ISCC%" OpenBuildsVideo.iss
+"%ISCC%" GenerateurVideo.iss
 if errorlevel 1 goto :err
 
 echo.
 echo ============================================================
-echo  OK  -^>  installer_output\OpenBuildsVideo-Setup.exe
+echo  OK  -^>  installer_output\GenerateurVideo-Setup.exe
 echo ============================================================
 echo.
 echo  C'est LE fichier a partager. La personne le lance, l'appli

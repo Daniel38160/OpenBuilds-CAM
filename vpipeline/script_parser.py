@@ -7,7 +7,7 @@ une ligne vide :
 
     [img: photo1.jpg]                   <- image du segment (optionnel)
     [text: Bienvenue sur la chaîne]     <- texte affiché à l'écran (optionnel)
-    [source: OpenBuilds docs]           <- bandeau sources discret (optionnel)
+    [source: ma-source.com]             <- bandeau sources discret (optionnel)
     Voici la narration lue par la voix. <- tout le reste = texte lu (TTS)
     Elle peut tenir sur plusieurs lignes.
 

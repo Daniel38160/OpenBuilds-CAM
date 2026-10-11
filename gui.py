@@ -18,7 +18,7 @@ import threading
 import queue
 from pathlib import Path
 
-APP_NAME = "OpenBuilds Video"
+APP_NAME = "Générateur de vidéo"
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
@@ -28,7 +28,7 @@ sys.path.insert(0, str(HERE))
 # --------------------------------------------------------------------------- #
 def _settings_path() -> Path:
     base = os.environ.get("APPDATA") or os.path.expanduser("~")
-    d = Path(base) / "OpenBuildsVideo"
+    d = Path(base) / "GenerateurVideo"
     d.mkdir(parents=True, exist_ok=True)
     return d / "settings.json"
 
@@ -201,7 +201,7 @@ def launch() -> None:
     pad = {"padx": 10, "pady": 6}
     header = ttk.Frame(root)
     header.pack(fill="x")
-    ttk.Label(header, text="🎬  OpenBuilds Video",
+    ttk.Label(header, text="🎬  Générateur de vidéo",
               font=("", 15, "bold")).pack(side="left", padx=12, pady=(12, 2))
     ttk.Label(header, text="script + images → vidéo",
               foreground="#888").pack(side="left", pady=(12, 2))
