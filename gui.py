@@ -265,11 +265,11 @@ def launch() -> None:
 
     row += 1
     ttk.Label(frm, text="Voix").grid(row=row, column=0, sticky="w", **pad)
-    tts_var = tk.StringVar(value=st.get("tts", "streamelements"))
+    tts_var = tk.StringVar(value=st.get("tts", "windows"))
     ttk.Combobox(frm, textvariable=tts_var, state="readonly",
-                 values=["streamelements", "elevenlabs", "edge", "piper", "espeak", "dummy"]).grid(
+                 values=["windows", "streamelements", "elevenlabs", "edge", "piper", "espeak", "dummy"]).grid(
         row=row, column=1, sticky="w", **pad)
-    ttk.Label(frm, text="streamelements = gratuit FR, sans clé", foreground="#888").grid(
+    ttk.Label(frm, text="windows = voix du PC (sans clé, increvable)", foreground="#888").grid(
         row=row, column=2, sticky="w", **pad)
 
     row += 1

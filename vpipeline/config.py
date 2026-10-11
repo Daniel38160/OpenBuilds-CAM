@@ -32,7 +32,7 @@ DEFAULTS: dict[str, Any] = {
     "font": None,                   # chemin .ttf ; auto-détecté si None
 
     "tts": {
-        "backend": "streamelements",  # streamelements (GRATUIT, FR) | edge | elevenlabs | piper | espeak | dummy
+        "backend": "windows",       # windows (local, increvable) | streamelements | edge | elevenlabs | piper | espeak | dummy
         "voice": "fr-FR-DeniseNeural",   # utilisé par edge-tts
         "se_voice": "Mathieu",      # voix StreamElements : Mathieu | Celine | Lea | Chantal
         "rate": "+0%",              # edge-tts : ex "+10%", "-5%"

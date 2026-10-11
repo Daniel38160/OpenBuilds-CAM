@@ -198,7 +198,8 @@ En ligne de commande :
 
 | Backend            | Qualité         | Clé / coût | Note |
 |--------------------|-----------------|------------|------|
-| **`streamelements`** | bonne (FR)    | **gratuit, sans clé** | **défaut** — voix FR Mathieu/Celine/Lea/Chantal |
+| **`windows`**      | correcte        | **gratuit, local, increvable** | **défaut** — voix intégrée à Windows (SAPI), sans internet |
+| `streamelements`   | bonne (FR)      | gratuit, sans clé | voix FR Mathieu/Celine/Lea (service web parfois capricieux) |
 | `elevenlabs`       | excellente      | **payant** pour l'API | voix de bibliothèque bloquées en gratuit |
 | `edge`             | très bonne      | gratuit    | voix FR Microsoft ; peut renvoyer un 403 (service MS) |
 | `piper`            | bonne (neuronal)| gratuit, hors-ligne | binaire `piper` + un modèle `.onnx` |

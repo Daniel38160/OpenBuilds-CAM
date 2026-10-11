@@ -32,6 +32,7 @@ def synthesize(text: str, out_wav: Path, cfg: dict[str, Any]) -> float:
     text = text.strip() or "…"
 
     fn = {
+        "windows": _windows,
         "edge": _edge,
         "streamelements": _streamelements,
         "piper": _piper,
@@ -43,6 +44,34 @@ def synthesize(text: str, out_wav: Path, cfg: dict[str, Any]) -> float:
         die(f"Backend TTS inconnu : {backend!r}")
     fn(text, out_wav, cfg)
     return probe_duration(out_wav)
+
+
+def _windows(text: str, out_wav: Path, cfg: dict[str, Any]) -> None:
+    """Voix intégrée à Windows (SAPI) — 100% locale, sans clé, sans internet,
+    impossible à bloquer. Choisit une voix française si une est installée."""
+    import os
+    if os.name != "nt":
+        die("Le backend 'windows' n'existe que sous Windows. "
+            "Utilise 'streamelements' (gratuit) ou 'dummy' (test).")
+    tmp = out_wav.with_suffix(".sapi.wav")
+    ps = (
+        "$ErrorActionPreference='Stop';"
+        "Add-Type -AssemblyName System.Speech;"
+        "$s=New-Object System.Speech.Synthesis.SpeechSynthesizer;"
+        "$fr=$s.GetInstalledVoices()|Where-Object {$_.VoiceInfo.Culture.Name -like 'fr*'}|Select-Object -First 1;"
+        "if($fr){$s.SelectVoice($fr.VoiceInfo.Name)};"
+        f"$s.SetOutputToWaveFile('{tmp}');"
+        "$s.Speak([Console]::In.ReadToEnd());"
+        "$s.Dispose()"
+    )
+    proc = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps],
+        input=text, text=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+    )
+    if proc.returncode != 0 or not tmp.exists():
+        die("Voix Windows (SAPI) a échoué :\n" + (proc.stderr or "").strip()[-300:])
+    _to_wav(tmp, out_wav)
+    tmp.unlink(missing_ok=True)
 
 
 def _streamelements(text: str, out_wav: Path, cfg: dict[str, Any]) -> None:
