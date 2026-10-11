@@ -95,6 +95,7 @@ def _drawtext(textfile: Path, font: str, fontsize: int, color: str,
     parts = [
         f"fontfile='{_esc_path(font)}'" if font else "",
         f"textfile='{_esc_path(textfile)}'",
+        "expansion=none",   # texte littéral : autorise % (ex: « 10% ») et autres
         f"fontcolor={color}",
         f"fontsize={fontsize}",
         "box=1",
