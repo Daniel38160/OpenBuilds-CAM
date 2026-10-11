@@ -57,8 +57,11 @@ def run_checks() -> list[tuple[str, bool, str]]:
     checks.append(("tkinter (fenêtre de l'appli)", tk_ok,
                    "" if tk_ok else "Réinstalle Python en incluant « tcl/tk »."))
 
-    # Fichiers du projet
-    files_ok = (HERE / "gui.py").exists() and (HERE / "vpipeline").is_dir()
+    # Fichiers de l'appli (dans l'exe, ils sont embarqués -> on teste l'import)
+    if getattr(sys, "frozen", False):
+        files_ok = importlib.util.find_spec("vpipeline") is not None
+    else:
+        files_ok = (HERE / "gui.py").exists() and (HERE / "vpipeline").is_dir()
     checks.append(("Fichiers de l'appli", files_ok,
                    "" if files_ok else "Lance ce script depuis le dossier du projet."))
 
