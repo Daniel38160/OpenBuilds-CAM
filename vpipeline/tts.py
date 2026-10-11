@@ -142,18 +142,25 @@ def list_elevenlabs_voices(api_key: str) -> list[dict[str, str]]:
 
 
 def _resolve_elevenlabs_voice(api_key: str, voice: str) -> str:
-    """Accepte un ID (renvoyé tel quel) ou un NOM (résolu via l'API)."""
+    """Accepte un ID (renvoyé tel quel) ou un NOM (résolu via l'API).
+    Si le nom est introuvable, prend automatiquement la 1re voix du compte
+    (évite l'erreur 'voice_not_found')."""
     v = (voice or "").strip()
     # Un ID ElevenLabs est une chaîne ~20 caractères alphanumériques sans espace.
     if v and " " not in v and len(v) >= 18 and v.isalnum():
         return v
     try:
-        for entry in list_elevenlabs_voices(api_key):
+        voices = list_elevenlabs_voices(api_key)
+        for entry in voices:
             if entry["name"].lower() == v.lower():
                 return entry["voice_id"]
+        if voices:
+            log(f"Voix ElevenLabs « {v or '(vide)'} » introuvable — "
+                f"utilisation de « {voices[0]['name']} ».")
+            return voices[0]["voice_id"]
     except Exception:
         pass
-    return v or "21m00Tcm4TlvDq8ikWAM"  # repli : voix "Rachel" par défaut
+    return v or "21m00Tcm4TlvDq8ikWAM"  # ultime repli : ID de la voix « Rachel »
 
 
 def _elevenlabs(text: str, out_wav: Path, cfg: dict[str, Any]) -> None:
