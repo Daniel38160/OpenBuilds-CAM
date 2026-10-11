@@ -1,0 +1,13 @@
+# Sorties et fichiers de travail du pipeline
+output/
+**/output/
+.work/
+**/.work/
+.cache/
+**/.cache/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

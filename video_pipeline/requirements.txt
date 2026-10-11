@@ -1,0 +1,12 @@
+# Le pipeline marche avec la bibliothèque standard de Python + ffmpeg.
+# Les dépendances ci-dessous ne servent qu'à certaines options.
+
+# Voix gratuite et de bonne qualité (nécessite internet) -- backend 'edge'
+edge-tts>=6.1.0
+
+# Config au format YAML (sinon, utilise un fichier .json) -- optionnel
+PyYAML>=6.0
+
+# --- Hors-ligne / API, à installer selon ton choix de voix ---
+# piper-tts        # voix neuronale hors-ligne (backend 'piper', + un modèle .onnx)
+# (ElevenLabs : aucune lib requise, le pipeline appelle l'API via urllib)
