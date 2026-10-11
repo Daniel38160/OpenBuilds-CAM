@@ -11,19 +11,21 @@
 fps: 30
 formats: [long]            # long (16:9) | short (9:16) | square | "1280x720"
 motion: true              # léger zoom Ken Burns sur les images fixes
-transition: fade          # fade (recommandé)
-fade_seconds: 0.4
+transition: crossfade     # crossfade (fondu enchaîné) | fade
+crossfade_type: fade      # style xfade : fade | dissolve | wipeleft | slideup | …
+fade_seconds: 0.5         # durée du fondu / crossfade
+still_seconds: 2.5        # durée d'une image sans narration ([hold: N] l'écrase)
 background_color: "0x101418"
 font: null                # chemin d'un .ttf ; auto-détecté si null
 
 tts:
-  backend: edge           # edge | piper | elevenlabs | espeak | dummy
+  backend: elevenlabs     # elevenlabs | edge | piper | espeak | dummy
+  elevenlabs_voice_id: Rachel        # nom ou ID de voix (clé via $ELEVENLABS_API_KEY)
+  elevenlabs_model: eleven_multilingual_v2
   voice: fr-FR-DeniseNeural   # voix edge-tts (fr-FR-HenriNeural pour une voix masculine)
   rate: "+0%"             # edge-tts : "+10%" plus rapide, "-10%" plus lent
   words_per_minute: 160   # seulement pour le backend 'dummy'
   # piper_model: /chemin/vers/fr_FR-model.onnx     # backend piper
-  # elevenlabs_voice_id: Rachel                    # backend elevenlabs (clé via $ELEVENLABS_API_KEY)
-  # elevenlabs_model: eleven_multilingual_v2
 
 logo:
   path: null              # ex: assets/logo.png (PNG transparent conseillé)

@@ -40,8 +40,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--config", help="Fichier de config (.yaml ou .json).")
     ap.add_argument("--out", help="Dossier de sortie (défaut: <épisode>/output).")
     ap.add_argument("--formats", help="Formats séparés par des virgules (long,short,square,1280x720).")
-    ap.add_argument("--tts", help="Backend TTS : edge|piper|elevenlabs|espeak|dummy.")
+    ap.add_argument("--tts", help="Backend TTS : elevenlabs|edge|piper|espeak|dummy.")
     ap.add_argument("--voice", help="Voix TTS (ex: fr-FR-DeniseNeural).")
+    ap.add_argument("--transition", choices=["crossfade", "fade"],
+                    help="Transition entre images (défaut: crossfade).")
     ap.add_argument("--no-intro", action="store_true", help="Désactive l'intro.")
     ap.add_argument("--no-motion", action="store_true", help="Désactive le zoom sur les images.")
     ap.add_argument("--keep-temp", action="store_true", help="Garde les fichiers intermédiaires.")
@@ -77,6 +79,8 @@ def main(argv: list[str] | None = None) -> int:
         cfg["tts"]["backend"] = args.tts
     if args.voice:
         cfg["tts"]["voice"] = args.voice
+    if args.transition:
+        cfg["transition"] = args.transition
     if args.no_intro:
         cfg["intro"]["enabled"] = False
     if args.no_motion:

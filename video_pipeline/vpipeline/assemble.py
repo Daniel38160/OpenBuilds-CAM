@@ -19,9 +19,10 @@ from .util import log, require_tool, run, srt_timestamp, wrap_text
 
 @dataclass
 class SegAudio:
-    """Audio synthétisé d'un segment (indépendant du format vidéo)."""
+    """Audio d'un segment (indépendant du format vidéo)."""
     wav: Path
-    speech: float   # durée de parole réelle (pour les sous-titres)
+    speech: float        # durée de la piste (pour caler la vidéo)
+    is_speech: bool = True   # True = narration (affichée en sous-titre)
 
 
 # --------------------------------------------------------------------------- #
@@ -46,19 +47,43 @@ def synth_all(episode: Episode, cfg: dict[str, Any], cache_dir: Path) -> list[Se
     backend = cfg["tts"]["backend"]
     voice = cfg["tts"].get("voice", "")
     rate = cfg["tts"].get("rate", "")
+    from .util import probe_duration
     out: list[SegAudio] = []
+    n = len(episode.segments)
     for i, seg in enumerate(episode.segments):
+        # 1) Son fourni ([audio:]) -> on l'utilise tel quel (bruitage, sting…).
+        if seg.audio is not None:
+            h = hashlib.sha1(f"file|{seg.audio.resolve()}".encode()).hexdigest()[:16]
+            wav = cache_dir / f"snd_{h}.wav"
+            if not wav.exists():
+                log(f"segment {i + 1}/{n} : son « {seg.audio.name} »")
+                tts._to_wav(seg.audio, wav)
+            dur = probe_duration(wav)
+            out.append(SegAudio(wav=wav, speech=dur, is_speech=False))
+            continue
+
+        # 2) Pas de narration -> image fixe silencieuse (gag de fin, carton…).
+        if not seg.narration.strip():
+            hold = float(seg.hold if seg.hold is not None else cfg["still_seconds"])
+            h = hashlib.sha1(f"hold|{hold:.3f}".encode()).hexdigest()[:16]
+            wav = cache_dir / f"hold_{h}.wav"
+            if not wav.exists():
+                log(f"segment {i + 1}/{n} : image fixe ({hold:.1f}s)")
+                _silence(hold, wav)
+            out.append(SegAudio(wav=wav, speech=hold, is_speech=False))
+            continue
+
+        # 3) Narration -> synthèse vocale (mise en cache par texte).
         key = f"{backend}|{voice}|{rate}|{seg.narration}"
         h = hashlib.sha1(key.encode("utf-8")).hexdigest()[:16]
         wav = cache_dir / f"seg_{h}.wav"
         if wav.exists():
-            from .util import probe_duration
             dur = probe_duration(wav)
-            log(f"segment {i + 1}/{len(episode.segments)} : audio en cache")
+            log(f"segment {i + 1}/{n} : audio en cache")
         else:
-            log(f"segment {i + 1}/{len(episode.segments)} : synthèse voix…")
+            log(f"segment {i + 1}/{n} : synthèse voix…")
             dur = tts.synthesize(seg.narration, wav, cfg)
-        out.append(SegAudio(wav=wav, speech=dur))
+        out.append(SegAudio(wav=wav, speech=dur, is_speech=True))
     return out
 
 
@@ -106,7 +131,8 @@ def _build_clip(*, image: Path | None, duration: float, W: int, H: int,
                 cfg: dict[str, Any], workdir: Path, out: Path,
                 caption: str | None, source: str | None,
                 intro_title: str | None = None,
-                intro_subtitle: str | None = None) -> None:
+                intro_subtitle: str | None = None,
+                fade_in: bool = True, fade_out: bool = True) -> None:
     """Construit un clip vidéo (sans audio) d'une durée exacte `duration`."""
     ffmpeg = require_tool("ffmpeg")
     fps = int(cfg["fps"])
@@ -149,10 +175,13 @@ def _build_clip(*, image: Path | None, duration: float, W: int, H: int,
             f"crop={W}:{H},setsar=1,fps={fps}"
         )
 
-    # Fades (entrée/sortie) communs.
+    # Fades d'entrée / sortie (en crossfade, seuls le 1er et le dernier clip
+    # en ont ; les transitions entre clips sont gérées par xfade).
     if fade > 0 and duration > 2 * fade:
-        vchain.append(f"fade=t=in:st=0:d={fade}")
-        vchain.append(f"fade=t=out:st={duration - fade:.3f}:d={fade}")
+        if fade_in:
+            vchain.append(f"fade=t=in:st=0:d={fade}")
+        if fade_out:
+            vchain.append(f"fade=t=out:st={duration - fade:.3f}:d={fade}")
 
     # Titre / sous-titre d'intro.
     if intro_title is not None:
@@ -239,54 +268,82 @@ def build(episode: Episode, seg_audios: list[SegAudio], cfg: dict[str, Any],
     gap = float(cfg["audio"]["gap_seconds"])
     workdir.mkdir(parents=True, exist_ok=True)
 
-    clips: list[Path] = []
-    audios: list[Path] = []
-    srt_entries: list[tuple[float, float, str]] = []
-    timeline = 0.0
+    crossfade = str(cfg.get("transition", "crossfade")).lower() == "crossfade"
+    fade = float(cfg["fade_seconds"])
+    # Recouvrement du crossfade, calé sur une frame entière.
+    xf = (_frames(fade, fps) / fps) if (crossfade and fade > 0) else 0.0
 
-    # Intro optionnelle.
+    # 1) On prépare la liste des "parties" (intro + segments) : pour chacune,
+    #    sa durée audio (naturelle) et sa durée vidéo (allongée de xf pour le
+    #    recouvrement, sauf la première partie).
+    @dataclass
+    class _Part:
+        clip: Path
+        audio: Path
+        render_dur: float   # durée du clip vidéo
+        audio_dur: float    # durée de la piste audio (= position sur la timeline)
+        speech: float       # durée de parole réelle (sous-titres)
+        narration: str
+
+    specs: list[tuple] = []  # (image, audio_dur, caption, source, speech, narration, is_intro, intro_sub)
+
     if cfg["intro"]["enabled"]:
-        idur_frames = _frames(float(cfg["intro"]["seconds"]), fps)
-        idur = idur_frames / fps
-        iclip = workdir / f"{fmt_name}_intro.mp4"
-        iaud = workdir / f"{fmt_name}_intro.wav"
+        idur = _frames(float(cfg["intro"]["seconds"]), fps) / fps
         bg = cfg["intro"]["background"]
         img = Path(bg) if (isinstance(bg, str) and Path(bg).exists()) else None
-        _build_clip(
-            image=img, duration=idur, W=W, H=H, cfg=cfg, workdir=workdir,
-            out=iclip, caption=None, source=None,
-            intro_title=cfg["intro"].get("title") or episode.title,
-            intro_subtitle=cfg["intro"].get("subtitle"),
-        )
-        _silence(idur, iaud)
-        clips.append(iclip)
-        audios.append(iaud)
-        timeline += idur
+        specs.append((img, idur, None, None, 0.0, "",
+                      cfg["intro"].get("title") or episode.title,
+                      cfg["intro"].get("subtitle")))
 
-    # Segments.
-    for i, (seg, sa) in enumerate(zip(episode.segments, seg_audios)):
-        clip_dur_frames = _frames(sa.speech + gap, fps)
-        clip_dur = clip_dur_frames / fps
-        clip = workdir / f"{fmt_name}_seg{i:03d}.mp4"
-        aud = workdir / f"{fmt_name}_seg{i:03d}.wav"
-        _build_clip(
-            image=seg.image, duration=clip_dur, W=W, H=H, cfg=cfg,
-            workdir=workdir, out=clip, caption=seg.caption, source=seg.source,
-        )
-        _pad_audio(sa.wav, clip_dur, aud)
-        clips.append(clip)
-        audios.append(aud)
-        if seg.narration:
-            srt_entries.append((timeline, timeline + sa.speech, seg.narration))
-        timeline += clip_dur
+    for seg, sa in zip(episode.segments, seg_audios):
+        extra = gap if sa.is_speech else 0.0   # petit silence après la voix
+        audio_dur = _frames(sa.speech + extra, fps) / fps
+        specs.append((seg.image, audio_dur, seg.caption, seg.source,
+                      sa.speech if sa.is_speech else 0.0,
+                      seg.narration if sa.is_speech else "", None, None))
 
-    # Concat vidéo (clips identiques -> copie sans ré-encodage).
+    # On récupère le wav de chaque partie (intro = silence, sinon audio déjà prêt).
+    part_wavs: list[Path] = []
+    if cfg["intro"]["enabled"]:
+        iaud = workdir / f"{fmt_name}_intro.wav"
+        _silence(specs[0][1], iaud)
+        part_wavs.append(iaud)
+    part_wavs += [sa.wav for sa in seg_audios]
+
+    # 2) On fabrique clips + pistes audio calées, et la timeline des sous-titres.
+    n = len(specs)
+    parts: list[_Part] = []
+    srt_entries: list[tuple[float, float, str]] = []
+    timeline = 0.0
+    for i, (image, audio_dur, caption, source, speech, narration,
+            intro_title, intro_sub) in enumerate(specs):
+        render_dur = audio_dur + (xf if i > 0 else 0.0)
+        clip = workdir / f"{fmt_name}_clip{i:03d}.mp4"
+        aud = workdir / f"{fmt_name}_clip{i:03d}.wav"
+        _build_clip(
+            image=image, duration=render_dur, W=W, H=H, cfg=cfg,
+            workdir=workdir, out=clip, caption=caption, source=source,
+            intro_title=intro_title, intro_subtitle=intro_sub,
+            fade_in=(i == 0) or not crossfade,
+            fade_out=(i == n - 1) or not crossfade,
+        )
+        _pad_audio(part_wavs[i], audio_dur, aud)
+        if narration:
+            srt_entries.append((timeline, timeline + speech, narration))
+        timeline += audio_dur
+        parts.append(_Part(clip, aud, render_dur, audio_dur, speech, narration))
+
+    # 3) Montage vidéo.
     video_only = workdir / f"{fmt_name}_video.mp4"
-    _concat_copy(clips, video_only, workdir / f"{fmt_name}_vlist.txt")
+    clips = [p.clip for p in parts]
+    if crossfade and n > 1 and xf > 0:
+        _concat_xfade(clips, [p.render_dur for p in parts], xf, cfg, video_only)
+    else:
+        _concat_copy(clips, video_only, workdir / f"{fmt_name}_vlist.txt")
 
-    # Concat audio voix.
+    # Concat audio.
     voice = workdir / f"{fmt_name}_voice.wav"
-    _concat_audio(audios, voice, workdir / f"{fmt_name}_alist.txt")
+    _concat_audio([p.audio for p in parts], voice, workdir / f"{fmt_name}_alist.txt")
 
     # Mix musique de fond éventuelle.
     final_audio = voice
@@ -313,6 +370,36 @@ def _concat_copy(clips: list[Path], out: Path, listfile: Path) -> None:
     )
     run([ffmpeg, "-y", "-f", "concat", "-safe", "0", "-i", str(listfile),
          "-c", "copy", str(out)])
+
+
+def _concat_xfade(clips: list[Path], render_durs: list[float], xf: float,
+                  cfg: dict[str, Any], out: Path) -> None:
+    """Enchaîne les clips en fondu enchaîné (xfade). Chaque clip i>0 a été
+    rendu `xf` secondes plus long pour alimenter le recouvrement ; la durée
+    finale vaut donc exactement la somme des durées audio."""
+    ffmpeg = require_tool("ffmpeg")
+    kind = str(cfg.get("crossfade_type", "fade"))  # fade, dissolve, wipeleft, …
+    inputs: list[str] = []
+    for c in clips:
+        inputs += ["-i", str(c)]
+
+    # Chaînage : offset = longueur cumulée courante - xf.
+    filters: list[str] = []
+    prev = "[0:v]"
+    running = render_durs[0]
+    for i in range(1, len(clips)):
+        offset = running - xf
+        label = f"[x{i}]" if i < len(clips) - 1 else "[vout]"
+        filters.append(
+            f"{prev}[{i}:v]xfade=transition={kind}:duration={xf:.3f}:"
+            f"offset={offset:.3f}{label}"
+        )
+        prev = label
+        running = running + render_durs[i] - xf
+
+    fc = ";".join(filters)
+    run([ffmpeg, "-y", *inputs, "-filter_complex", fc, "-map", "[vout]",
+         *_encode_opts(cfg), "-an", str(out)])
 
 
 def _concat_audio(auds: list[Path], out: Path, listfile: Path) -> None:

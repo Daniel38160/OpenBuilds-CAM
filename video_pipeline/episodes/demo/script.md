@@ -20,3 +20,12 @@ avant de l'envoyer à ta machine via OpenBuilds CONTROL.
 [text: À toi de jouer]
 Un dessin, quelques réglages, et ta pièce est prête à être usinée.
 Abonne-toi pour le prochain épisode.
+
+// --- Gag de fin : image + bruitage, pas de narration ---
+[img: 06_Gag.png]
+[text: Bon… j'avais oublié de serrer la fraise.]
+[audio: assets/pouet.wav]
+
+// --- Carton de fin : image tenue quelques secondes, en silence ---
+[img: 07_Fin.png]
+[hold: 2.5]

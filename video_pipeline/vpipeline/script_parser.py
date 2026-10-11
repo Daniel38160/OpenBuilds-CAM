@@ -37,6 +37,8 @@ class Segment:
     image: Path | None = None
     caption: str | None = None       # [text: ...]
     source: str | None = None        # [source: ...]
+    audio: Path | None = None        # [audio: ...] son/bruitage au lieu de la voix
+    hold: float | None = None        # [hold: N] durée en s d'une image sans narration
     extras: dict[str, str] = field(default_factory=dict)
 
 
@@ -73,6 +75,8 @@ def parse_script(script_path: Path, images_dir: Path) -> Episode:
         image: Path | None = None
         caption: str | None = None
         source: str | None = None
+        audio: Path | None = None
+        hold: float | None = None
         extras: dict[str, str] = {}
 
         for line in block.splitlines():
@@ -88,6 +92,10 @@ def parse_script(script_path: Path, images_dir: Path) -> Episode:
                     caption = val
                 elif key in ("source", "sources"):
                     source = val
+                elif key in ("audio", "son", "sound"):
+                    audio = _resolve_file(val, images_dir)
+                elif key in ("hold", "pause", "duree", "durée"):
+                    hold = _parse_float(val, key)
                 elif key == "title":
                     title = val
                 else:
@@ -102,14 +110,14 @@ def parse_script(script_path: Path, images_dir: Path) -> Episode:
             narration_lines.append(s)
 
         narration = " ".join(narration_lines).strip()
-        if not narration and image is None and caption is None:
+        if not narration and image is None and caption is None and audio is None:
             continue  # bloc vide (ex: juste le titre)
 
         if image is not None:
             used.add(image)
         segments.append(
             Segment(narration=narration, image=image, caption=caption,
-                    source=source, extras=extras)
+                    source=source, audio=audio, hold=hold, extras=extras)
         )
 
     # Auto-attribution des images non référencées, dans l'ordre du dossier.
@@ -139,3 +147,18 @@ def _resolve_image(name: str, images_dir: Path) -> Path:
     if direct.exists():
         return direct
     die(f"Image introuvable : {name!r} (cherchée dans {images_dir}).")
+
+
+def _resolve_file(name: str, base_dir: Path) -> Path:
+    """Résout un chemin de fichier (son) relatif au dossier épisode/images ou absolu."""
+    for cand in (Path(name), base_dir / name, base_dir.parent / name):
+        if cand.exists():
+            return cand
+    die(f"Fichier audio introuvable : {name!r}.")
+
+
+def _parse_float(val: str, key: str) -> float:
+    try:
+        return float(val.replace(",", ".").rstrip("s").strip())
+    except ValueError:
+        die(f"Valeur invalide pour [{key}: {val}] (un nombre de secondes attendu).")

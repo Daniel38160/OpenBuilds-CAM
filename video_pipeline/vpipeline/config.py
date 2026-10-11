@@ -25,17 +25,19 @@ DEFAULTS: dict[str, Any] = {
     "fps": 30,
     "formats": ["long"],            # liste parmi FORMATS, ou "WxH"
     "motion": True,                 # léger zoom (effet Ken Burns) sur les images
-    "transition": "fade",           # "fade" (sûr) ou "crossfade"
-    "fade_seconds": 0.4,
+    "transition": "crossfade",      # "crossfade" (fondu enchaîné) ou "fade"
+    "fade_seconds": 0.5,            # durée du fondu / crossfade
+    "still_seconds": 2.5,           # durée d'une image sans narration ([hold:] écrase)
     "background_color": "0x101418",  # fond quand l'image ne couvre pas
     "font": None,                   # chemin .ttf ; auto-détecté si None
 
     "tts": {
-        "backend": "edge",          # edge | piper | elevenlabs | espeak | dummy
-        "voice": "fr-FR-DeniseNeural",
+        "backend": "elevenlabs",    # elevenlabs | edge | piper | espeak | dummy
+        "voice": "fr-FR-DeniseNeural",   # utilisé par edge-tts
         "rate": "+0%",              # edge-tts : ex "+10%", "-5%"
         "words_per_minute": 160,    # utilisé par le backend 'dummy'
-        "elevenlabs_voice_id": "Rachel",
+        "elevenlabs_voice_id": "Rachel",     # nom ou ID de voix ElevenLabs
+        "elevenlabs_model": "eleven_multilingual_v2",
     },
 
     # Style constant de la chaîne
