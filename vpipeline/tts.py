@@ -151,9 +151,17 @@ def _resolve_elevenlabs_voice(api_key: str, voice: str) -> str:
         return v
     try:
         voices = list_elevenlabs_voices(api_key)
+        vl = v.lower()
+        # 1) correspondance exacte du nom
         for entry in voices:
-            if entry["name"].lower() == v.lower():
+            if entry["name"].lower() == vl:
                 return entry["voice_id"]
+        # 2) correspondance partielle (ex: « Nelly » -> « Nelly - French ... »)
+        if vl:
+            for entry in voices:
+                if vl in entry["name"].lower():
+                    return entry["voice_id"]
+        # 3) à défaut, la première voix du compte
         if voices:
             log(f"Voix ElevenLabs « {v or '(vide)'} » introuvable — "
                 f"utilisation de « {voices[0]['name']} ».")
