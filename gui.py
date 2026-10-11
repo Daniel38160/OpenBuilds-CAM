@@ -299,8 +299,13 @@ def launch() -> None:
                 from vpipeline import tts
                 voices = tts.list_elevenlabs_voices(api)
             except Exception as exc:
-                root.after(0, lambda: (load_btn.config(state="normal", text="Charger mes voix"),
-                                       messagebox.showerror(APP_NAME, f"Impossible de charger les voix :\n{exc}")))
+                msg = f"{type(exc).__name__}: {exc}"
+                root.after(0, lambda m=msg: (load_btn.config(state="normal", text="Charger mes voix"),
+                                             messagebox.showerror(
+                                                 APP_NAME,
+                                                 "Impossible de charger les voix :\n" + m +
+                                                 "\n\nAstuce : colle directement l'ID de la voix "
+                                                 "(depuis le site ElevenLabs) dans « Voix ElevenLabs ».")))
                 return
 
             def apply() -> None:

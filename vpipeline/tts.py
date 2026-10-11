@@ -124,14 +124,24 @@ def _piper(text: str, out_wav: Path, cfg: dict[str, Any]) -> None:
 def list_elevenlabs_voices(api_key: str) -> list[dict[str, str]]:
     """Liste les voix du compte ElevenLabs : [{'name','voice_id','labels'}, …]."""
     import json as _json
+    import urllib.error
     import urllib.request
 
     req = urllib.request.Request(
         "https://api.elevenlabs.io/v1/voices",
-        headers={"xi-api-key": api_key, "Accept": "application/json"},
+        headers={"xi-api-key": (api_key or "").strip(), "Accept": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        data = _json.loads(resp.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = _json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", "ignore")[:200]
+        if exc.code == 401:
+            raise RuntimeError("clé invalide ou sans droit « Voices » (401). "
+                               "Utilise une clé complète, ou colle l'ID de la voix.")
+        raise RuntimeError(f"HTTP {exc.code} — {body}")
+    except Exception as exc:
+        raise RuntimeError(f"réseau : {exc}")
     out: list[dict[str, str]] = []
     for v in data.get("voices", []):
         labels = v.get("labels") or {}
