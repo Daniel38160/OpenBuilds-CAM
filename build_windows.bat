@@ -1,14 +1,38 @@
 @echo off
 rem ============================================================
 rem  Fabrique OpenBuildsVideo.exe (appli Windows autonome).
-rem  A lancer UNE FOIS sur un PC Windows avec Python installe.
+rem  A lancer UNE FOIS sur un PC Windows (installe Python via winget au besoin).
 rem  Resultat : dist\OpenBuildsVideo.exe (+ dist\bin\ffmpeg)
 rem ============================================================
-setlocal
+setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
-where py >nul 2>nul && (set "PY=py -3") || (set "PY=python")
+rem --- Detecter Python (py launcher, puis python reel) ---------------------
+rem  Le "python" du Microsoft Store (alias) renvoie une erreur a --version :
+rem  on l'ecarte en exigeant que --version reussisse.
+set "PY="
+where py >nul 2>nul && ( py -3 --version >nul 2>nul && set "PY=py -3" )
+if not defined PY ( where python >nul 2>nul && ( python --version >nul 2>nul && set "PY=python" ) )
 
+if not defined PY (
+  echo Python non trouve. Tentative d'installation automatique via winget...
+  winget install -e --id Python.Python.3.12 --scope user --accept-source-agreements --accept-package-agreements
+  rem Re-detecter (le PATH n'est pas rafraichi dans cette fenetre : on cherche aussi le chemin direct).
+  where py >nul 2>nul && ( py -3 --version >nul 2>nul && set "PY=py -3" )
+  if not defined PY for /d %%D in ("%LocalAppData%\Programs\Python\Python3*") do set "PY=%%D\python.exe"
+)
+
+if not defined PY (
+  echo.
+  echo Python est introuvable et n'a pas pu etre installe automatiquement.
+  echo Installe-le depuis  https://www.python.org/downloads/
+  echo   -^> IMPORTANT : coche "Add Python to PATH" pendant l'installation.
+  echo Puis relance ce script.
+  goto :err
+)
+
+echo Python detecte : %PY%
+echo.
 echo === Installation des outils de build ===
 %PY% -m pip install --upgrade pip pyinstaller edge-tts pyyaml
 if errorlevel 1 goto :err

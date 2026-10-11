@@ -230,7 +230,8 @@ double-clic sur  start_gui.bat      (ou :  python gui.py)
 ```
 
 **Option 2 — fabriquer un vrai `.exe` autonome** (le PC n'a plus besoin de
-Python ensuite). Sur un PC Windows avec Python :
+Python ensuite). Sur un PC Windows (le script installe Python via winget si
+besoin) :
 
 ```
 double-clic sur  build_windows.bat
@@ -242,7 +243,7 @@ donc l'exe fonctionne **tel quel** (zéro install). Distribue le dossier `dist\`
 en entier (l'`.exe` **et** le sous-dossier `bin\`), et lance-le d'un double-clic.
 
 **Option 3 — un installateur à partager** (le plus « clé en main »). Sur un PC
-Windows avec Python :
+Windows (Python et Inno Setup installés automatiquement si besoin) :
 
 ```
 double-clic sur  build_installer.bat
@@ -267,6 +268,11 @@ sont inclus dans l'installateur.
 
 ## 10. Dépannage
 
+- **`Python was not found… Microsoft Store`** (pendant un build) → Python n'est
+  pas installé. `build_windows.bat` tente de l'installer via winget ; sinon
+  installe-le depuis [python.org](https://www.python.org/downloads/) en cochant
+  **« Add Python to PATH »**, puis relance. (Astuce : si le faux « python » du
+  Store gêne, désactive-le dans *Paramètres → Applications → Alias d'exécution*.)
 - **`'ffmpeg' introuvable`** → installe ffmpeg et vérifie qu'il est dans le PATH.
 - **Textes à l'écran absents** → aucune police `.ttf` trouvée ; renseigne `font`
   dans la config (chemin d'un `.ttf`).
