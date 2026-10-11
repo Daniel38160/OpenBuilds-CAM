@@ -20,10 +20,11 @@ Principe :
 -------------------------------------------------------------------------------
 - Script ecrit par une IA dans une FENETRE DE DIALOGUE (ecrire + affiner) :
   Groq (GRATUIT, cle gratuite) ou Claude (payant, qq centimes/script).
-- Voix off automatique a partir du texte (TTS) :
-    * ElevenLabs (par defaut, la plus naturelle - necessite une cle)
-    * edge-tts (gratuit), Piper (hors-ligne), dummy (muet, pour tester)
-    * bouton "Charger mes voix" : liste tes voix ElevenLabs depuis ta cle
+- Voix (100% gratuite, sans cle) :
+    * windows (par defaut) : la voix integree a Windows, locale, increvable
+    * fichier : TA PROPRE VOIX - tu fournis un mp3/wav, il devient la bande-son
+      (bouton "Parcourir..." pour choisir ton fichier audio)
+    * dummy : muet, pour tester le montage
 - Images :
     * tu les mets toi-meme dans images/ (01_..., 02_... pour l'ordre), OU
     * recherche/creation AUTOMATIQUE selon les mots-cles du script :
@@ -54,8 +55,9 @@ Dans la fenetre :
    1. "Parcourir..." pour choisir un dossier d'episode
       (ou "Nouvel episode..." pour en creer un tout pret)
    2. Choisir la voix :
-        - elevenlabs : coller la cle, "Charger mes voix", choisir une voix
-        - ou "dummy" pour un test muet sans cle
+        - windows : la voix du PC (rien a preparer) -- defaut
+        - fichier : ta propre voix -> "Parcourir..." pour choisir ton mp3/wav
+        - dummy   : muet, pour tester le montage
    3. (Option) cocher "Chercher les images automatiquement" + choisir la banque
       (Pixabay avec cle, ou Openverse sans cle)
    4. Choisir le format (long / short / square) et la transition
@@ -99,7 +101,7 @@ Gag / carton de fin : un segment SANS narration devient une image tenue.
 -------------------------------------------------------------------------------
 5. LES CLES (a saisir une seule fois, memorisees)
 -------------------------------------------------------------------------------
-- ElevenLabs (voix)  : compte sur elevenlabs.io -> Profile -> API Keys
+- La VOIX ne demande AUCUNE cle (windows ou ton propre fichier audio).
 - Pixabay (images)   : compte sur pixabay.com -> API  (gratuit, sans attribution)
 - Openverse (images) : AUCUNE cle (banque de secours)
 - Groq (script IA)   : console.groq.com -> API Keys  (GRATUIT)

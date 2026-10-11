@@ -16,7 +16,7 @@ un dossier d'épisode  (script.md + images/)   →   une commande   →   la vid
 - ✅ **Images de fin / gag** : un carton ou une image avec bruitage en deux lignes.
 - ✅ Plusieurs formats d'un coup : YouTube 16:9 **et** Short 9:16.
 - ✅ Sous-titres `.srt` générés automatiquement.
-- ✅ Voix au choix : ElevenLabs (défaut), edge-tts (gratuit), Piper (hors-ligne).
+- ✅ Voix 100 % gratuite : voix du PC (Windows) **ou ta propre voix** (ton mp3/wav).
 - ✅ **Appli Windows** (fenêtre), `.exe` autonome **et installateur partageable** (§9).
 
 ---
@@ -27,7 +27,7 @@ un dossier d'épisode  (script.md + images/)   →   une commande   →   la vid
 |-----------------------|---------------------------------|---------------------|
 | **Python 3.9+**       | lance le pipeline               | [python.org](https://www.python.org/downloads/) · Windows : coche « Add Python to PATH » |
 | **ffmpeg** (+ffprobe) | fabrique la vidéo               | **Win** : `winget install Gyan.FFmpeg` · **macOS** : `brew install ffmpeg` · **Linux** : `sudo apt install ffmpeg` |
-| **une clé ElevenLabs**| la voix (backend par défaut)    | compte sur [elevenlabs.io](https://elevenlabs.io) → *Profile → API Keys* |
+| (rien pour la voix)   | la voix est **gratuite**        | voix du PC (Windows) par défaut, ou ton propre fichier audio — aucune clé |
 | (une police `.ttf`)   | textes à l'écran                | déjà présente sur la plupart des PC ; sinon renseigne `font` |
 
 Vérifie que ffmpeg répond : `ffmpeg -version`. S'il est introuvable, c'est
@@ -42,7 +42,7 @@ pip install -r requirements.txt
 
 > Le pipeline tourne avec la **bibliothèque standard** de Python + ffmpeg.
 > Les paquets de `requirements.txt` ne servent qu'à certaines options
-> (voix `edge`, config YAML).
+> (config YAML, script écrit par l'IA).
 
 ## 2. Lancer
 
@@ -50,28 +50,25 @@ pip install -r requirements.txt
 
 ```bash
 python make_video.py episodes/demo --tts dummy
-# -> episodes/demo/output/openbuilds-cam-en-60-secondes__long.mp4  (+ .srt)
+# -> episodes/demo/output/...__long.mp4  (+ .srt)
 ```
 
-**b) Pour de vrai, avec la voix ElevenLabs** (backend par défaut). Mets d'abord
-ta clé dans une variable d'environnement, puis lance :
+**b) Avec la voix du PC** (défaut, sous Windows, sans rien préparer) :
 
 ```bash
-# macOS / Linux
-export ELEVENLABS_API_KEY="sk_ta_cle_ici"
 python make_video.py episodes/demo
+```
 
-# Windows (PowerShell)
-$env:ELEVENLABS_API_KEY="sk_ta_cle_ici"
-python make_video.py episodes/demo
+**c) Avec ta propre voix** — enregistre ta narration (téléphone, Audacity…),
+exporte en `mp3`/`wav`, puis passe-la en bande-son :
+
+```bash
+python make_video.py episodes/demo --voice-file "C:\chemin\ma_voix.mp3"
 ```
 
 C'est tout : la vidéo (16:9 par défaut) et son `.srt` arrivent dans
 `episodes/demo/output/`. Pour ton propre épisode, remplace `episodes/demo` par
 le dossier de ton épisode (voir §3).
-
-> Pas (encore) de clé ElevenLabs ? Utilise `--tts edge` (voix gratuite, §5) ou
-> `--tts dummy` (silence, pour tester le montage).
 
 ## 3. Structure d'un épisode
 
@@ -194,35 +191,36 @@ En ligne de commande :
 `--write-script "ton sujet" --segments 6 --ai-provider groq --groq-key …`
 (ou `GROQ_API_KEY` ; `--ai-provider claude --anthropic-key …` pour Claude).
 
-## 5. Choisir la voix (TTS)
+## 5. Choisir la voix
 
-| Backend            | Qualité         | Clé / coût | Note |
-|--------------------|-----------------|------------|------|
-| **`windows`**      | correcte        | **gratuit, local, increvable** | **défaut** — voix intégrée à Windows (SAPI), sans internet |
-| `streamelements`   | bonne (FR)      | gratuit, sans clé | voix FR Mathieu/Celine/Lea (service web parfois capricieux) |
-| `elevenlabs`       | excellente      | **payant** pour l'API | voix de bibliothèque bloquées en gratuit |
-| `edge`             | très bonne      | gratuit    | voix FR Microsoft ; peut renvoyer un 403 (service MS) |
-| `piper`            | bonne (neuronal)| gratuit, hors-ligne | binaire `piper` + un modèle `.onnx` |
-| `espeak`           | robotique       | gratuit, hors-ligne | `apt install espeak-ng` |
-| `dummy`            | silence         | gratuit    | pour tester le montage |
+Trois choix, **tous gratuits et sans clé** :
 
-> **Conseil :** laisse **`streamelements`** (voix française gratuite, sans clé,
-> sans compte) — c'est le choix par défaut et le plus simple. ElevenLabs n'est
-> utilisable via l'API qu'avec un **abonnement payant** ; `edge` est gratuit
-> mais dépend d'un service Microsoft parfois capricieux.
+| Voix          | Qualité  | Détail |
+|---------------|----------|--------|
+| **`windows`** | correcte | **défaut** — voix intégrée à Windows (SAPI), 100 % locale, sans internet, impossible à bloquer |
+| **`fichier`** | la tienne (parfaite) | **tu fournis ton propre fichier audio** (ta voix enregistrée, un `mp3`/`wav`) ; l'appli le répartit sur tes images |
+| `dummy`       | silence  | pour tester le montage sans son |
+
+> **Conseil :** pour la meilleure qualité, enregistre ta narration (téléphone,
+> Dictaphone, Audacity…), exporte en `mp3` ou `wav`, et choisis **`fichier`**.
+> C'est **ta vraie voix** — rien de plus naturel, et c'est gratuit.
+> Sinon, **`windows`** marche tout seul sans rien préparer.
 
 ```bash
-# ElevenLabs (défaut) — la plus naturelle
-export ELEVENLABS_API_KEY=sk_...
+# Voix du PC (défaut) — rien à préparer
 python make_video.py episodes/mon-episode
-# choisir la voix : dans la config -> tts.elevenlabs_voice_id: "ID_ou_nom"
 
-# voix gratuite edge-tts (fr féminine ; fr-FR-HenriNeural pour une voix masculine)
-python make_video.py episodes/mon-episode --tts edge --voice fr-FR-DeniseNeural
+# Ta propre voix : passe ton fichier audio (il devient la bande-son)
+python make_video.py episodes/mon-episode --voice-file "C:\chemin\ma_voix.mp3"
 ```
 
+**Comment la voix « fichier » se cale sur les images :** le son est découpé
+proportionnellement à la longueur de chaque paragraphe du script (un texte plus
+long = son image reste plus longtemps à l'écran). Les segments avec un
+`[audio: ...]` ou un `[hold: N]` gardent leur son/durée propre.
+
 > 💡 Les voix sont **mises en cache** (`episodes/<ep>/.cache/`). Relancer après
-> une modif ne re-synthétise que les segments dont le texte a changé.
+> une modif ne refait que ce qui a changé.
 
 ## 6. Options de la commande
 
@@ -231,8 +229,8 @@ python make_video.py <dossier-épisode> [options]
 
   --config FICHIER     config de style (.yaml ou .json)
   --formats long,short formats à produire (long | short | square | 1280x720)
-  --tts BACKEND        elevenlabs | edge | piper | espeak | dummy
-  --voice VOIX         ex: fr-FR-DeniseNeural (backend edge)
+  --tts VOIX           windows | fichier | dummy
+  --voice-file FICHIER ton mp3/wav (ta voix) ; force la voix 'fichier'
   --transition T       crossfade (défaut) | fade
   --no-intro           désactive l'intro
   --no-motion          désactive le zoom (effet Ken Burns) sur les images
@@ -282,9 +280,9 @@ Pour ne plus toucher à la ligne de commande, il y a une **interface graphique**
 - choisir un dossier d'épisode **ou en créer un tout prêt** (bouton « Nouvel
   épisode… » : crée `images/`, `assets/` et un `script.md` de départ) ;
 - voir en direct le résumé de l'épisode (nb de segments / d'images) ;
-- choisir la voix — et, pour ElevenLabs, **charger la liste de tes voix** depuis
-  ta clé et en piocher une ;
-- coller ta clé ElevenLabs (mémorisée), choisir le format et la transition ;
+- choisir la voix : **windows** (voix du PC) ou **fichier** (ta propre voix) —
+  dans ce cas, bouton **« Parcourir… »** pour choisir ton `mp3`/`wav` ;
+- choisir le format et la transition (réglages mémorisés d'une fois sur l'autre) ;
 - cliquer **Générer** : progression + minuteur en direct, puis ouverture
   automatique du dossier de sortie.
 
@@ -337,8 +335,8 @@ sont inclus dans l'installateur.
 
 > Si le téléchargement auto de ffmpeg échoue (réseau, proxy), installe-le une
 > fois (`winget install Gyan.FFmpeg`) ou copie `ffmpeg.exe` **et** `ffprobe.exe`
-> dans `dist\bin\` : l'appli les détecte automatiquement. La clé ElevenLabs
-> saisie dans la fenêtre est enregistrée dans
+> dans `dist\bin\` : l'appli les détecte automatiquement. Les réglages saisis
+> dans la fenêtre sont enregistrés dans
 > `%APPDATA%\GenerateurVideo\settings.json`.
 
 ## 10. Dépannage
@@ -351,7 +349,9 @@ sont inclus dans l'installateur.
 - **`'ffmpeg' introuvable`** → installe ffmpeg et vérifie qu'il est dans le PATH.
 - **Textes à l'écran absents** → aucune police `.ttf` trouvée ; renseigne `font`
   dans la config (chemin d'un `.ttf`).
-- **edge-tts échoue** → pas de réseau ou voix invalide ; teste avec `--tts dummy`.
+- **Voix « fichier » : « Fichier audio introuvable »** → revérifie le chemin du
+  `mp3`/`wav` (re-choisis-le avec « Parcourir… »).
+- **Pas de son / son muet** → la voix est sur `dummy` ; choisis `windows` ou `fichier`.
 - **Config YAML refusée** → `pip install pyyaml`, ou utilise un fichier `.json`.
 
 ## 11. Les fichiers du projet (qui fait quoi)

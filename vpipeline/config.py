@@ -32,14 +32,9 @@ DEFAULTS: dict[str, Any] = {
     "font": None,                   # chemin .ttf ; auto-détecté si None
 
     "tts": {
-        "backend": "windows",       # windows (local, increvable) | streamelements | edge | elevenlabs | piper | espeak | dummy
-        "voice": "fr-FR-DeniseNeural",   # utilisé par edge-tts
-        "se_voice": "Mathieu",      # voix StreamElements : Mathieu | Celine | Lea | Chantal
-        "piper_voice": "fr_FR-siwis-medium",  # voix Piper (neuronale, FR, hors-ligne)
-        "rate": "+0%",              # edge-tts : ex "+10%", "-5%"
+        "backend": "windows",       # windows (voix du PC, increvable) | fichier (ton mp3/wav) | dummy (silence)
+        "voice_file": None,         # chemin d'un fichier audio (ta voix) si backend = fichier
         "words_per_minute": 160,    # utilisé par le backend 'dummy'
-        "elevenlabs_voice_id": "Rachel",     # nom ou ID de voix ElevenLabs
-        "elevenlabs_model": "eleven_multilingual_v2",
     },
 
     # Rédaction du script par une IA (bouton dédié)

@@ -65,12 +65,6 @@ def run_checks() -> list[tuple[str, bool, str]]:
     checks.append(("Fichiers de l'appli", files_ok,
                    "" if files_ok else "Lance ce script depuis le dossier du projet."))
 
-    # edge-tts (optionnel : seulement pour la voix gratuite 'edge')
-    edge_ok = importlib.util.find_spec("edge_tts") is not None
-    checks.append(("edge-tts (voix gratuite, optionnel)", edge_ok,
-                   "" if edge_ok else "Optionnel : pip install edge-tts "
-                   "(pas nécessaire pour ElevenLabs ou dummy)."))
-
     return checks
 
 

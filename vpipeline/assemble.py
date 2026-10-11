@@ -23,6 +23,7 @@ class SegAudio:
     wav: Path
     speech: float        # durée de la piste (pour caler la vidéo)
     is_speech: bool = True   # True = narration (affichée en sous-titre)
+    gap_after: bool = True   # petit silence après ce segment (coupé en mode 'fichier')
 
 
 # --------------------------------------------------------------------------- #
@@ -44,10 +45,16 @@ def _frames(duration: float, fps: int) -> int:
 def synth_all(episode: Episode, cfg: dict[str, Any], cache_dir: Path) -> list[SegAudio]:
     cache_dir.mkdir(parents=True, exist_ok=True)
     tts.preflight(cfg)
-    backend = cfg["tts"]["backend"]
+    backend = cfg["tts"]["backend"].lower()
     voice = cfg["tts"].get("voice", "")
     rate = cfg["tts"].get("rate", "")
     from .util import probe_duration
+
+    # Mode « fichier audio » : l'utilisateur fournit sa propre voix (un mp3/wav).
+    # On répartit ce son sur les images/segments (voir _voicefile_audios).
+    if backend == "fichier":
+        return _voicefile_audios(episode, cfg, cache_dir)
+
     out: list[SegAudio] = []
     n = len(episode.segments)
     for i, seg in enumerate(episode.segments):
@@ -85,6 +92,112 @@ def synth_all(episode: Episode, cfg: dict[str, Any], cache_dir: Path) -> list[Se
             dur = tts.synthesize(seg.narration, wav, cfg)
         out.append(SegAudio(wav=wav, speech=dur, is_speech=True))
     return out
+
+
+def _voicefile_audios(episode: Episode, cfg: dict[str, Any],
+                      cache_dir: Path) -> list[SegAudio]:
+    """Mode « fichier audio » : on utilise LE son fourni par l'utilisateur
+    (sa propre voix) comme bande-son, réparti sur les segments/images.
+
+    - Les segments avec un [audio:] explicite (bruitage de fin, sting) gardent
+      leur son propre.
+    - Les segments « muets » avec un [hold: N] gardent leur durée fixe.
+    - Tous les autres segments se partagent la durée du fichier audio, au
+      prorata de la longueur de leur narration (texte plus long = reste plus
+      longtemps à l'écran). S'il n'y a aucune narration, part égale.
+    """
+    from .util import probe_duration
+
+    vf = Path(cfg["tts"]["voice_file"])
+    if not vf.exists():
+        die(f"Fichier audio introuvable : {vf}")
+
+    # 1) Normalise le fichier fourni (une seule fois, mis en cache).
+    h = hashlib.sha1(f"voicefile|{vf.resolve()}|{vf.stat().st_mtime_ns}"
+                     .encode()).hexdigest()[:16]
+    master = cache_dir / f"voice_{h}.wav"
+    if not master.exists():
+        log(f"Préparation de ton fichier audio « {vf.name} »…")
+        tts._to_wav(vf, master)
+    total = probe_duration(master)
+    fps = int(cfg["fps"])
+    total_frames = max(1, int(round(total * fps)))
+
+    n = len(episode.segments)
+
+    def is_fixed(seg: Segment) -> bool:
+        if seg.audio is not None:
+            return True
+        if not seg.narration.strip() and seg.hold is not None:
+            return True
+        return False
+
+    voice_idx = [i for i, s in enumerate(episode.segments) if not is_fixed(s)]
+    any_narration = any(s.narration.strip() for s in episode.segments)
+
+    # Poids de chaque segment « voix » (longueur de narration, min 1).
+    if voice_idx:
+        weights = [max(1, len(episode.segments[i].narration.strip()))
+                   if any_narration else 1 for i in voice_idx]
+        tw = sum(weights)
+        # Répartition en nombre ENTIER de frames (le dernier prend le reste).
+        alloc: dict[int, int] = {}
+        acc = 0
+        for k, i in enumerate(voice_idx):
+            if k == len(voice_idx) - 1:
+                alloc[i] = max(1, total_frames - acc)
+            else:
+                f = max(1, int(round(total_frames * weights[k] / tw)))
+                alloc[i] = f
+                acc += f
+    else:
+        alloc = {}
+
+    out: list[SegAudio] = []
+    cursor_frames = 0  # position de lecture dans le fichier audio (en frames)
+    for i, seg in enumerate(episode.segments):
+        # a) [audio:] explicite -> son fourni tel quel.
+        if seg.audio is not None:
+            hh = hashlib.sha1(f"file|{seg.audio.resolve()}".encode()).hexdigest()[:16]
+            wav = cache_dir / f"snd_{hh}.wav"
+            if not wav.exists():
+                log(f"segment {i + 1}/{n} : son « {seg.audio.name} »")
+                tts._to_wav(seg.audio, wav)
+            out.append(SegAudio(wav=wav, speech=probe_duration(wav),
+                                is_speech=False))
+            continue
+
+        # b) image muette tenue ([hold:]) -> silence de durée fixe.
+        if not seg.narration.strip() and seg.hold is not None:
+            hold = float(seg.hold)
+            hh = hashlib.sha1(f"hold|{hold:.3f}".encode()).hexdigest()[:16]
+            wav = cache_dir / f"hold_{hh}.wav"
+            if not wav.exists():
+                _silence(hold, wav)
+            out.append(SegAudio(wav=wav, speech=hold, is_speech=False))
+            continue
+
+        # c) segment « voix » -> tranche contiguë du fichier audio.
+        frames = alloc.get(i, 1)
+        start = cursor_frames / fps
+        dur = frames / fps
+        cursor_frames += frames
+        hh = hashlib.sha1(f"slice|{master.name}|{start:.3f}|{dur:.3f}"
+                          .encode()).hexdigest()[:16]
+        wav = cache_dir / f"vslice_{hh}.wav"
+        if not wav.exists():
+            log(f"segment {i + 1}/{n} : extrait audio ({dur:.1f}s)")
+            _slice_audio(master, start, dur, wav)
+        # is_speech=True -> sous-titre affiché ; gap_after=False -> voix continue.
+        out.append(SegAudio(wav=wav, speech=dur, is_speech=True, gap_after=False))
+    return out
+
+
+def _slice_audio(src: Path, start: float, dur: float, out: Path) -> None:
+    """Extrait [start, start+dur] du WAV normalisé `src`."""
+    ffmpeg = require_tool("ffmpeg")
+    run([ffmpeg, "-y", "-ss", f"{start:.3f}", "-t", f"{dur:.3f}", "-i", str(src),
+         "-ar", str(tts.TARGET_RATE), "-ac", str(tts.TARGET_CH), str(out)])
 
 
 # --------------------------------------------------------------------------- #
@@ -297,7 +410,7 @@ def build(episode: Episode, seg_audios: list[SegAudio], cfg: dict[str, Any],
                       cfg["intro"].get("subtitle")))
 
     for seg, sa in zip(episode.segments, seg_audios):
-        extra = gap if sa.is_speech else 0.0   # petit silence après la voix
+        extra = gap if (sa.is_speech and sa.gap_after) else 0.0   # petit silence après la voix
         audio_dur = _frames(sa.speech + extra, fps) / fps
         specs.append((seg.image, audio_dur, seg.caption, seg.source,
                       sa.speech if sa.is_speech else 0.0,

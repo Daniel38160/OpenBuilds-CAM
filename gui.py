@@ -267,79 +267,26 @@ def launch() -> None:
     ttk.Label(frm, text="Voix").grid(row=row, column=0, sticky="w", **pad)
     tts_var = tk.StringVar(value=st.get("tts", "windows"))
     ttk.Combobox(frm, textvariable=tts_var, state="readonly",
-                 values=["windows", "streamelements", "elevenlabs", "edge", "piper", "espeak", "dummy"]).grid(
+                 values=["windows", "fichier", "dummy"]).grid(
         row=row, column=1, sticky="w", **pad)
-    ttk.Label(frm, text="windows = voix du PC (sans clé, increvable)", foreground="#888").grid(
-        row=row, column=2, sticky="w", **pad)
+    ttk.Label(frm, text="windows = voix du PC · fichier = ta voix · dummy = muet",
+              foreground="#888").grid(row=row, column=2, sticky="w", **pad)
 
     row += 1
-    ttk.Label(frm, text="Voix gratuite (StreamElements)").grid(row=row, column=0, sticky="w", **pad)
-    se_voice_var = tk.StringVar(value=st.get("se_voice", "Mathieu"))
-    ttk.Combobox(frm, textvariable=se_voice_var, state="readonly",
-                 values=["Mathieu", "Celine", "Lea", "Chantal"]).grid(
-        row=row, column=1, sticky="w", **pad)
+    ttk.Label(frm, text="Fichier audio (ta voix)").grid(row=row, column=0, sticky="w", **pad)
+    voicefile_var = tk.StringVar(value=st.get("voice_file", ""))
+    ttk.Entry(frm, textvariable=voicefile_var).grid(row=row, column=1, sticky="ew", **pad)
 
-    row += 1
-    ttk.Label(frm, text="Clé ElevenLabs").grid(row=row, column=0, sticky="w", **pad)
-    key_var = tk.StringVar(value=st.get("elevenlabs_key", ""))
-    key_entry = ttk.Entry(frm, textvariable=key_var, show="•")
-    key_entry.grid(row=row, column=1, sticky="ew", **pad)
-    show_var = tk.BooleanVar(value=False)
-    ttk.Checkbutton(frm, text="voir", variable=show_var,
-                    command=lambda: key_entry.config(show="" if show_var.get() else "•")
-                    ).grid(row=row, column=2, **pad)
+    def browse_voice() -> None:
+        f = filedialog.askopenfilename(
+            title="Choisis ton fichier audio (ta voix)",
+            filetypes=[("Audio", "*.mp3 *.wav *.m4a *.aac *.ogg *.flac *.wma"),
+                       ("Tous les fichiers", "*.*")])
+        if f:
+            voicefile_var.set(f)
+            tts_var.set("fichier")   # choisir un fichier = utiliser la voix 'fichier'
 
-    row += 1
-    ttk.Label(frm, text="Voix ElevenLabs").grid(row=row, column=0, sticky="w", **pad)
-    el_voice_var = tk.StringVar(value=st.get("elevenlabs_voice", "Rachel"))
-    el_voice_cb = ttk.Combobox(frm, textvariable=el_voice_var, values=["Rachel"])
-    el_voice_cb.grid(row=row, column=1, sticky="ew", **pad)
-    el_voice_map: dict[str, str] = {}   # nom affiché -> voice_id
-
-    def load_voices() -> None:
-        api = key_var.get().strip()
-        if not api:
-            messagebox.showinfo(APP_NAME, "Colle d'abord ta clé ElevenLabs.")
-            return
-        load_btn.config(state="disabled", text="…")
-
-        def worker() -> None:
-            try:
-                from vpipeline import tts
-                voices = tts.list_elevenlabs_voices(api)
-            except Exception as exc:
-                msg = f"{type(exc).__name__}: {exc}"
-                root.after(0, lambda m=msg: (load_btn.config(state="normal", text="Charger mes voix"),
-                                             messagebox.showerror(
-                                                 APP_NAME,
-                                                 "Impossible de charger les voix :\n" + m +
-                                                 "\n\nAstuce : colle directement l'ID de la voix "
-                                                 "(depuis le site ElevenLabs) dans « Voix ElevenLabs ».")))
-                return
-
-            def apply() -> None:
-                el_voice_map.clear()
-                names = []
-                for v in voices:
-                    label = v["name"] + (f"  ({v['labels']})" if v["labels"] else "")
-                    names.append(label)
-                    el_voice_map[label] = v["voice_id"]
-                    el_voice_map[v["name"]] = v["voice_id"]
-                el_voice_cb.config(values=names or ["Rachel"])
-                load_btn.config(state="normal", text="Charger mes voix")
-                persist()   # mémorise la clé dès qu'elle a servi
-                messagebox.showinfo(APP_NAME, f"{len(voices)} voix chargées. Choisis-en une dans la liste.")
-            root.after(0, apply)
-
-        threading.Thread(target=worker, daemon=True).start()
-
-    load_btn = ttk.Button(frm, text="Charger mes voix", command=load_voices)
-    load_btn.grid(row=row, column=2, **pad)
-
-    row += 1
-    ttk.Label(frm, text="Voix edge (si backend edge)").grid(row=row, column=0, sticky="w", **pad)
-    edge_voice_var = tk.StringVar(value=st.get("edge_voice", "fr-FR-DeniseNeural"))
-    ttk.Entry(frm, textvariable=edge_voice_var).grid(row=row, column=1, sticky="w", **pad)
+    ttk.Button(frm, text="Parcourir…", command=browse_voice).grid(row=row, column=2, **pad)
 
     row += 1
     ttk.Label(frm, text="Format").grid(row=row, column=0, sticky="w", **pad)
@@ -444,13 +391,11 @@ def launch() -> None:
     def persist() -> None:
         save_settings({
             "episode": episode_var.get(), "tts": tts_var.get(),
-            "elevenlabs_key": key_var.get(), "elevenlabs_voice": el_voice_var.get(),
-            "edge_voice": edge_voice_var.get(),
+            "voice_file": voicefile_var.get(),
             "formats": fmt_var.get(), "transition": trans_var.get(),
             "intro": intro_var.get(), "motion": motion_var.get(),
             "pixabay_key": pix_var.get(), "auto_images": autoimg_var.get(),
             "image_provider": imgprov_var.get(),
-            "se_voice": se_voice_var.get(),
             "ai_provider": ai_prov_var.get(),
             "groq_key": (ai_key_var.get() if _cur[0] == "groq" else ia_keys.get("groq", "")),
             "anthropic_key": (ai_key_var.get() if _cur[0] == "claude" else ia_keys.get("claude", "")),
@@ -505,9 +450,14 @@ def launch() -> None:
         if not ep or not Path(ep).is_dir():
             messagebox.showerror(APP_NAME, "Choisis un dossier d'épisode valide.")
             return
-        if tts_var.get() == "elevenlabs" and not key_var.get().strip():
-            messagebox.showerror(APP_NAME, "Colle ta clé ElevenLabs (ou choisis la voix « edge » / « dummy »).")
-            return
+        if tts_var.get() == "fichier":
+            vf = voicefile_var.get().strip()
+            if not vf or not Path(vf).is_file():
+                messagebox.showerror(
+                    APP_NAME,
+                    "Voix « fichier » choisie : indique ton fichier audio "
+                    "(mp3/wav) avec « Parcourir… », ou choisis la voix « windows ».")
+                return
         if not bootstrap_ffmpeg():
             messagebox.showerror(
                 APP_NAME,
@@ -526,19 +476,15 @@ def launch() -> None:
             imgprov_var.set("openverse")
 
         persist()
-        if key_var.get().strip():
-            os.environ["ELEVENLABS_API_KEY"] = key_var.get().strip()
         if pix_var.get().strip():
             os.environ["PIXABAY_API_KEY"] = pix_var.get().strip()
 
         out_dir = Path(ep) / "output"
         state["out_dir"] = str(out_dir)
-        el_voice = el_voice_map.get(el_voice_var.get(), el_voice_var.get()).strip()
         argv = [ep, "--tts", tts_var.get(), "--formats", fmt_var.get(),
-                "--transition", trans_var.get(), "--voice", edge_voice_var.get(),
-                "--se-voice", se_voice_var.get()]
-        if el_voice:
-            argv += ["--elevenlabs-voice", el_voice]
+                "--transition", trans_var.get()]
+        if tts_var.get() == "fichier" and voicefile_var.get().strip():
+            argv += ["--voice-file", voicefile_var.get().strip()]
         if not intro_var.get():
             argv.append("--no-intro")
         if not motion_var.get():
