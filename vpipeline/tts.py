@@ -158,19 +158,51 @@ def _edge(text: str, out_wav: Path, cfg: dict[str, Any]) -> None:
     tmp_mp3.unlink(missing_ok=True)
 
 
+def _piper_cache_dir() -> Path:
+    import os
+    base = os.environ.get("LOCALAPPDATA") or str(Path.home())
+    d = Path(base) / "GenerateurVideo" / "piper"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 def _piper(text: str, out_wav: Path, cfg: dict[str, Any]) -> None:
-    exe = require_tool("piper")
+    """Voix neuronale française GRATUITE et HORS-LIGNE (Piper).
+    Nécessite le paquet piper-tts ; télécharge la voix une seule fois."""
+    import sys
+    import wave
+
+    try:
+        from piper import PiperVoice  # type: ignore
+    except ImportError:
+        die("Piper non installé.  ->  py -3.12 -m pip install piper-tts")
+
+    # Modèle direct fourni, sinon téléchargement par nom.
     model = cfg["tts"].get("piper_model")
-    if not model or not Path(model).exists():
-        die("Backend 'piper' : renseigne tts.piper_model (chemin du .onnx).")
+    if model and Path(model).exists():
+        onnx = Path(model)
+    else:
+        name = cfg["tts"].get("piper_voice", "fr_FR-siwis-medium")
+        cache = _piper_cache_dir()
+        onnx = cache / f"{name}.onnx"
+        if not onnx.exists():
+            log(f"Téléchargement de la voix Piper « {name} » (une seule fois, ~60 Mo)…")
+            r = subprocess.run(
+                [sys.executable, "-m", "piper.download_voices", name,
+                 "--download-dir", str(cache)],
+                capture_output=True, text=True,
+            )
+            if not onnx.exists():
+                die("Téléchargement de la voix Piper échoué :\n"
+                    + (r.stderr or r.stdout or "").strip()[-400:])
+
     tmp = out_wav.with_suffix(".piper.wav")
-    proc = subprocess.run(
-        [exe, "--model", str(model), "--output_file", str(tmp)],
-        input=text, text=True,
-        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
-    )
-    if proc.returncode != 0:
-        die(f"piper a échoué :\n{proc.stderr.strip()}")
+    try:
+        voice = PiperVoice.load(str(onnx))
+        with wave.open(str(tmp), "wb") as wf:
+            voice.synthesize_wav(text, wf)
+    except Exception as exc:
+        die(f"Piper (synthèse) a échoué : {exc}")
     _to_wav(tmp, out_wav)
     tmp.unlink(missing_ok=True)
 
