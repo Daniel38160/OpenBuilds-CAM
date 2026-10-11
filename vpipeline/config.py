@@ -40,6 +40,12 @@ DEFAULTS: dict[str, Any] = {
         "elevenlabs_model": "eleven_multilingual_v2",
     },
 
+    # Rédaction du script par Claude (API Anthropic)
+    "ai": {
+        "model": "claude-opus-5-5",  # modèle Claude ; haiku = moins cher
+        "key": None,                 # clé Anthropic ; sinon $ANTHROPIC_API_KEY
+    },
+
     # Recherche d'images automatique (banque Pixabay) pour les segments sans image
     "images": {
         "auto": False,              # True = cherche et télécharge les images manquantes

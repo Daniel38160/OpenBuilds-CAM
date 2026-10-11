@@ -18,6 +18,8 @@ Principe :
 -------------------------------------------------------------------------------
 2. CE QUE L'APPLI SAIT FAIRE
 -------------------------------------------------------------------------------
+- Script ecrit par Claude (IA) a partir d'un simple sujet (bouton dedie,
+  cle API Anthropic requise - payant a l'usage, qq centimes par script).
 - Voix off automatique a partir du texte (TTS) :
     * ElevenLabs (par defaut, la plus naturelle - necessite une cle)
     * edge-tts (gratuit), Piper (hors-ligne), dummy (muet, pour tester)
@@ -98,6 +100,8 @@ Gag / carton de fin : un segment SANS narration devient une image tenue.
 -------------------------------------------------------------------------------
 - ElevenLabs (voix)  : compte sur elevenlabs.io -> Profile -> API Keys
 - Pixabay (images)   : compte sur pixabay.com -> API  (gratuit, sans attribution)
+- Openverse (images) : AUCUNE cle (banque de secours)
+- Claude (script IA) : console.anthropic.com -> API Keys  (payant a l'usage)
 Les cles restent sur TON PC (dossier %APPDATA%\GenerateurVideo). Si tu partages
 l'installateur, tes cles ne partent pas avec : chacun met la sienne.
 
@@ -138,6 +142,8 @@ Installer ffmpeg si besoin :  winget install Gyan.FFmpeg
 9.  Recherche d'images automatique : Pixabay (cle) + Openverse (sans cle, secours).
 10. Rangement : noms de fichiers clairs + verificateur d'installation
     (Verifier-l-installation.bat) et bilan automatique au demarrage de l'appli.
+11. Integration de Claude (IA) : bouton "Script avec Claude" qui redige le
+    script.md a partir d'un sujet (cle API Anthropic).
 
 
 -------------------------------------------------------------------------------

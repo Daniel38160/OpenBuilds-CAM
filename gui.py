@@ -245,6 +245,8 @@ def launch() -> None:
 
     ttk.Button(btns, text="Parcourir…", command=browse).pack(side="left")
     ttk.Button(btns, text="Nouvel épisode…", command=new_episode).pack(side="left", padx=(6, 0))
+    claude_btn = ttk.Button(btns, text="✍️ Script avec Claude")
+    claude_btn.pack(side="left", padx=(6, 0))
 
     row += 1
     info_var = tk.StringVar(value="")
@@ -357,6 +359,25 @@ def launch() -> None:
                     ).grid(row=row, column=2, **pad)
 
     row += 1
+    ttk.Label(frm, text="Clé Claude (écrire le script)").grid(row=row, column=0, sticky="w", **pad)
+    claude_key_var = tk.StringVar(value=st.get("anthropic_key", ""))
+    claude_entry = ttk.Entry(frm, textvariable=claude_key_var, show="•")
+    claude_entry.grid(row=row, column=1, sticky="ew", **pad)
+    claude_show = tk.BooleanVar(value=False)
+    ttk.Checkbutton(frm, text="voir", variable=claude_show,
+                    command=lambda: claude_entry.config(show="" if claude_show.get() else "•")
+                    ).grid(row=row, column=2, **pad)
+
+    row += 1
+    ttk.Label(frm, text="Modèle Claude").grid(row=row, column=0, sticky="w", **pad)
+    claude_model_var = tk.StringVar(value=st.get("claude_model", "claude-opus-5-5"))
+    ttk.Combobox(frm, textvariable=claude_model_var, state="readonly",
+                 values=["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"]
+                 ).grid(row=row, column=1, sticky="w", **pad)
+    ttk.Label(frm, text="haiku = le moins cher", foreground="#888").grid(
+        row=row, column=2, sticky="w", **pad)
+
+    row += 1
     opts = ttk.Frame(frm)
     opts.grid(row=row, column=0, columnspan=3, sticky="w", **pad)
     intro_var = tk.BooleanVar(value=st.get("intro", True))
@@ -406,6 +427,7 @@ def launch() -> None:
             "intro": intro_var.get(), "motion": motion_var.get(),
             "pixabay_key": pix_var.get(), "auto_images": autoimg_var.get(),
             "image_provider": imgprov_var.get(),
+            "anthropic_key": claude_key_var.get(), "claude_model": claude_model_var.get(),
         })
 
     log_q: "queue.Queue[str]" = queue.Queue()
@@ -509,6 +531,53 @@ def launch() -> None:
         root.after(120, poll)
 
     gen_btn.config(command=generate)
+
+    def write_with_claude() -> None:
+        key = claude_key_var.get().strip()
+        if not key:
+            messagebox.showinfo(APP_NAME, "Colle d'abord ta clé Claude (Anthropic).")
+            return
+        topic = simpledialog.askstring(APP_NAME, "Sujet de la vidéo :", parent=root)
+        if not topic:
+            return
+        nseg = simpledialog.askinteger(APP_NAME, "Combien de segments ?",
+                                       parent=root, initialvalue=5, minvalue=2, maxvalue=20) or 5
+        parent = filedialog.askdirectory(title="Où créer l'épisode ?")
+        if not parent:
+            return
+        persist()
+        claude_btn.config(state="disabled", text="… Claude écrit")
+
+        def worker() -> None:
+            import time
+            try:
+                from vpipeline import ai_script
+                cfg = {"ai": {"model": claude_model_var.get(), "key": key}}
+                text = ai_script.generate_script(topic, nseg, cfg, key)
+                try:
+                    ep = create_episode(parent, topic)
+                except FileExistsError:
+                    ep = create_episode(parent, f"{topic}-{int(time.time()) % 10000}")
+                (ep / "script.md").write_text(text, encoding="utf-8")
+            except Exception as exc:
+                root.after(0, lambda e=exc: (
+                    claude_btn.config(state="normal", text="✍️ Script avec Claude"),
+                    messagebox.showerror(APP_NAME, f"Échec : {e}")))
+                return
+
+            def done() -> None:
+                claude_btn.config(state="normal", text="✍️ Script avec Claude")
+                episode_var.set(str(ep))
+                messagebox.showinfo(
+                    APP_NAME,
+                    f"Script écrit par Claude :\n{ep / 'script.md'}\n\n"
+                    f"Ajoute des images dans images/ (ou coche la recherche auto), "
+                    f"puis clique Générer.")
+            root.after(0, done)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    claude_btn.config(command=write_with_claude)
 
     def on_close() -> None:
         persist()   # mémorise la clé et les réglages même sans génération

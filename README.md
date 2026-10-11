@@ -10,6 +10,7 @@ un dossier d'épisode  (script.md + images/)   →   une commande   →   la vid
 
 - ✅ Zéro abonnement, zéro filigrane — c'est ton outil.
 - ✅ Style constant automatique : intro, textes à l'écran, bandeau sources, logo.
+- ✅ **Script écrit par Claude** à partir d'un simple sujet (option).
 - ✅ **Crossfade** (fondu enchaîné) entre les images + zoom doux.
 - ✅ **Images de fin / gag** : un carton ou une image avec bruitage en deux lignes.
 - ✅ Plusieurs formats d'un coup : YouTube 16:9 **et** Short 9:16.
@@ -165,6 +166,22 @@ En ligne de commande : `--auto-images` `--image-provider pixabay|openverse`
 > Le choix automatique est pratique mais parfois « moyen » : tu peux toujours
 > **remplacer** une image dans `images/` (garde le nom `auto_XX.jpg`) ou ajouter
 > un `[img:]` précis dans le script, puis relancer. Tu gardes la main.
+
+### Écrire le script avec Claude ✍️
+
+Pas d'inspiration pour le texte ? **Claude peut rédiger le script** pour toi, au
+bon format (titre, segments, `[text:]`, narration).
+
+1. Crée une **clé API** sur [console.anthropic.com](https://console.anthropic.com/)
+   (API Keys). ⚠️ C'est une **API payante** (à l'usage), mais un script coûte
+   quelques centimes — et le modèle `claude-haiku-5-5` est le moins cher.
+2. Dans l'appli : colle la clé dans **« Clé Claude »**, choisis le **modèle**,
+   puis clique **« ✍️ Script avec Claude »** : donne un sujet + un nombre de
+   segments, et l'épisode (avec `script.md`) est créé tout seul.
+3. Ajoute des images (ou coche la recherche auto), puis **Génère**.
+
+En ligne de commande :
+`--write-script "ton sujet" --segments 6 --anthropic-key …` (ou `ANTHROPIC_API_KEY`).
 
 ## 5. Choisir la voix (TTS)
 
@@ -338,7 +355,7 @@ Le reste :
 | `LISEZ-MOI.txt`        | récap simple en français |
 | `gui.py`               | l'interface graphique |
 | `make_video.py`        | le moteur en ligne de commande |
-| `vpipeline/`           | le code du pipeline (voix, images, montage) |
+| `vpipeline/`           | le code du pipeline (voix, images, montage, script IA) |
 | `check_setup.py`       | la vérification d'installation |
 | `config.example.yaml`  | modèle de style de chaîne (optionnel) |
 | `episodes/`            | tes épisodes (script + images) ; `demo/` en exemple |

@@ -18,6 +18,10 @@ still_seconds: 2.5        # durée d'une image sans narration ([hold: N] l'écra
 background_color: "0x101418"
 font: null                # chemin d'un .ttf ; auto-détecté si null
 
+ai:                       # rédaction du script par Claude (bouton dédié)
+  model: claude-opus-5-5  # claude-opus-5-5 | claude-sonnet-5-5 | claude-haiku-5-5 (moins cher)
+  key: null               # clé Anthropic ; sinon variable d'env ANTHROPIC_API_KEY
+
 images:                   # recherche d'images automatique (segments sans image)
   auto: false             # true = télécharge les images manquantes
   provider: pixabay       # banque principale : pixabay | openverse

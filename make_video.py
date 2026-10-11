@@ -53,6 +53,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--image-provider", choices=["pixabay", "openverse"],
                     help="Banque d'images (pixabay = clé requise ; openverse = sans clé).")
     ap.add_argument("--pixabay-key", help="Clé API Pixabay (sinon $PIXABAY_API_KEY).")
+    ap.add_argument("--write-script", metavar="SUJET",
+                    help="Fait écrire le script.md par Claude à partir d'un sujet.")
+    ap.add_argument("--segments", type=int, default=5,
+                    help="Nombre de segments pour --write-script (défaut: 5).")
+    ap.add_argument("--anthropic-key", help="Clé API Claude (sinon $ANTHROPIC_API_KEY).")
     ap.add_argument("--keep-temp", action="store_true", help="Garde les fichiers intermédiaires.")
     args = ap.parse_args(argv)
 
@@ -100,6 +105,21 @@ def main(argv: list[str] | None = None) -> int:
         cfg["images"]["provider"] = args.image_provider
     if args.pixabay_key:
         cfg["images"]["key"] = args.pixabay_key
+    if args.anthropic_key:
+        cfg["ai"]["key"] = args.anthropic_key
+
+    # Écriture du script par Claude (optionnel).
+    if args.write_script:
+        from vpipeline import ai_script
+        log(f"Claude rédige le script sur : « {args.write_script} »…")
+        try:
+            text = ai_script.generate_script(args.write_script, args.segments, cfg,
+                                             cfg["ai"].get("key"))
+        except RuntimeError as exc:
+            die(str(exc))
+        script_path = ep_dir / (args.script or "script.md")
+        script_path.write_text(text, encoding="utf-8")
+        log(f"Script écrit : {script_path}")
 
     if not cfg.get("font"):
         log("Aucune police .ttf trouvée : les textes à l'écran seront désactivés "

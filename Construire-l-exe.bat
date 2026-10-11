@@ -33,7 +33,7 @@ if not defined PY (
 echo Python detecte : %PY%
 echo.
 echo === Installation des outils de build ===
-%PY% -m pip install --upgrade pip pyinstaller edge-tts
+%PY% -m pip install --upgrade pip pyinstaller edge-tts anthropic
 if errorlevel 1 goto :err
 rem PyYAML est optionnel (configs YAML) : on l'installe en best-effort, sans bloquer.
 %PY% -m pip install pyyaml 2>nul || echo (PyYAML non installe - optionnel, les configs .json fonctionnent)
@@ -45,6 +45,7 @@ echo === Construction de l'executable ===
   --collect-submodules vpipeline ^
   --hidden-import make_video ^
   --collect-all edge_tts ^
+  --collect-all anthropic ^
   --add-data "config.example.yaml;." ^
   --add-data "assets\app_icon.ico;assets" ^
   --add-data "assets\app_icon_256.png;assets" ^

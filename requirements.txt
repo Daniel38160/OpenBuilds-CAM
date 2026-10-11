@@ -7,6 +7,9 @@ edge-tts>=6.1.0
 # Config au format YAML (sinon, utilise un fichier .json) -- optionnel
 PyYAML>=6.0
 
+# Écriture du script par Claude (bouton « Script avec Claude ») -- optionnel
+anthropic>=0.40.0
+
 # --- Hors-ligne / API, à installer selon ton choix de voix ---
 # piper-tts        # voix neuronale hors-ligne (backend 'piper', + un modèle .onnx)
 # (ElevenLabs : aucune lib requise, le pipeline appelle l'API via urllib)
