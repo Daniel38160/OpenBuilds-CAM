@@ -53,37 +53,53 @@ echo === Construction de l'executable ===
 if errorlevel 1 goto :err
 
 echo.
-echo === Telechargement de ffmpeg (pour un exe zero-install) ===
-if not exist "dist\bin\ffmpeg.exe" (
-  powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-    "$ErrorActionPreference='Stop';" ^
-    "try {" ^
-    "  $u='https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip';" ^
-    "  $z=Join-Path $env:TEMP 'ffmpeg_dl.zip';" ^
-    "  Write-Host 'Telechargement...'; Invoke-WebRequest -Uri $u -OutFile $z;" ^
-    "  $x=Join-Path $env:TEMP 'ffmpeg_x'; if(Test-Path $x){Remove-Item $x -Recurse -Force};" ^
-    "  Expand-Archive -Path $z -DestinationPath $x -Force;" ^
-    "  New-Item -ItemType Directory -Force -Path 'dist\bin' ^| Out-Null;" ^
-    "  Get-ChildItem -Path $x -Recurse -Include ffmpeg.exe,ffprobe.exe ^| ForEach-Object { Copy-Item $_.FullName 'dist\bin' -Force };" ^
-    "  Write-Host 'ffmpeg installe dans dist\bin'" ^
-    "} catch { Write-Host ('ffmpeg non telecharge: '+$_.Exception.Message) }"
-) else (
-  echo ffmpeg deja present dans dist\bin
+echo === ffmpeg ===
+where ffmpeg >nul 2>nul
+if %errorlevel%==0 (
+  echo ffmpeg est deja installe sur ce PC : rien a telecharger.
+  echo L'exe l'utilisera automatiquement.
+  goto :okmsg
+)
+if exist "dist\bin\ffmpeg.exe" (
+  echo ffmpeg deja present dans dist\bin.
+  goto :okmsg
 )
 
+rem ffmpeg absent : on le telecharge dans dist\bin (curl + tar, integres a Windows 10/11).
+echo ffmpeg introuvable : telechargement dans dist\bin ...
+if not exist "dist\bin" mkdir "dist\bin"
+curl -L -o "%TEMP%\ffmpeg_dl.zip" "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+if errorlevel 1 goto :noffmpeg
+if exist "%TEMP%\ffmpeg_x" rmdir /s /q "%TEMP%\ffmpeg_x"
+mkdir "%TEMP%\ffmpeg_x"
+tar -xf "%TEMP%\ffmpeg_dl.zip" -C "%TEMP%\ffmpeg_x"
+if errorlevel 1 goto :noffmpeg
+for /r "%TEMP%\ffmpeg_x" %%f in (ffmpeg.exe ffprobe.exe) do copy /y "%%f" "dist\bin\" >nul 2>nul
+if exist "dist\bin\ffmpeg.exe" (echo ffmpeg installe dans dist\bin.) else (goto :noffmpeg)
+
+:okmsg
 echo.
 echo ============================================================
 echo  OK  -^>  dist\GenerateurVideo.exe
 echo ============================================================
 echo.
-if exist "dist\bin\ffmpeg.exe" (
-  echo  ffmpeg est embarque : l'exe fonctionne tel quel.
-  echo  Distribue le dossier dist\ ^(exe + bin\^) ensemble.
-) else (
-  echo  ffmpeg n'a pas pu etre telecharge automatiquement.
-  echo  Installe-le ^(winget install Gyan.FFmpeg^) ou copie
-  echo  ffmpeg.exe et ffprobe.exe dans dist\bin\ manuellement.
-)
+echo  Pour toi : l'exe marche tel quel (ffmpeg deja la ou embarque).
+echo  Pour PARTAGER a quelqu'un sans ffmpeg : distribue le dossier dist\
+echo  avec le sous-dossier bin\ s'il existe.
+echo.
+pause
+exit /b 0
+
+:noffmpeg
+echo.
+echo ============================================================
+echo  OK  -^>  dist\GenerateurVideo.exe  (ffmpeg non embarque)
+echo ============================================================
+echo.
+echo  ffmpeg n'a pas pu etre telecharge, mais ce n'est PAS grave si
+echo  ffmpeg est deja installe sur le PC qui lance l'exe.
+echo  Sinon : winget install Gyan.FFmpeg, ou copie ffmpeg.exe et
+echo  ffprobe.exe dans dist\bin\.
 echo.
 pause
 exit /b 0
