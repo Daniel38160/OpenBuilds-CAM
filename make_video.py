@@ -42,6 +42,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--formats", help="Formats séparés par des virgules (long,short,square,1280x720).")
     ap.add_argument("--tts", help="Backend TTS : elevenlabs|edge|piper|espeak|dummy.")
     ap.add_argument("--voice", help="Voix edge-tts (ex: fr-FR-DeniseNeural).")
+    ap.add_argument("--se-voice", dest="se_voice",
+                    help="Voix StreamElements (Mathieu|Celine|Lea|Chantal).")
     ap.add_argument("--elevenlabs-voice", dest="el_voice",
                     help="Voix ElevenLabs (nom ou ID).")
     ap.add_argument("--transition", choices=["crossfade", "fade"],
@@ -94,6 +96,8 @@ def main(argv: list[str] | None = None) -> int:
         cfg["tts"]["backend"] = args.tts
     if args.voice:
         cfg["tts"]["voice"] = args.voice
+    if args.se_voice:
+        cfg["tts"]["se_voice"] = args.se_voice
     if args.el_voice:
         cfg["tts"]["elevenlabs_voice_id"] = args.el_voice
     if args.transition:

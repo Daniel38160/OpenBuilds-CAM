@@ -33,6 +33,7 @@ def synthesize(text: str, out_wav: Path, cfg: dict[str, Any]) -> float:
 
     fn = {
         "edge": _edge,
+        "streamelements": _streamelements,
         "piper": _piper,
         "elevenlabs": _elevenlabs,
         "espeak": _espeak,
@@ -42,6 +43,30 @@ def synthesize(text: str, out_wav: Path, cfg: dict[str, Any]) -> float:
         die(f"Backend TTS inconnu : {backend!r}")
     fn(text, out_wav, cfg)
     return probe_duration(out_wav)
+
+
+def _streamelements(text: str, out_wav: Path, cfg: dict[str, Any]) -> None:
+    """Voix française GRATUITE, sans clé (service StreamElements / Polly).
+    Voix FR dispo : Mathieu (homme), Celine, Lea (femmes), Chantal (fr-CA)."""
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    voice = cfg["tts"].get("se_voice", "Mathieu")
+    url = ("https://api.streamelements.com/kappa/v2/speech?"
+           + urllib.parse.urlencode({"voice": voice, "text": text[:550]}))
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    tmp_mp3 = out_wav.with_suffix(".se.mp3")
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            tmp_mp3.write_bytes(resp.read())
+    except urllib.error.HTTPError as exc:
+        die(f"Voix gratuite (StreamElements) HTTP {exc.code}. "
+            f"Vérifie la voix '{voice}' (Mathieu/Celine/Lea) ou réessaie.")
+    except Exception as exc:
+        die(f"Voix gratuite (StreamElements) a échoué : {exc}")
+    _to_wav(tmp_mp3, out_wav)
+    tmp_mp3.unlink(missing_ok=True)
 
 
 def _to_wav(src: Path, dst: Path) -> None:

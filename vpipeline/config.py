@@ -32,8 +32,9 @@ DEFAULTS: dict[str, Any] = {
     "font": None,                   # chemin .ttf ; auto-détecté si None
 
     "tts": {
-        "backend": "elevenlabs",    # elevenlabs | edge | piper | espeak | dummy
+        "backend": "streamelements",  # streamelements (GRATUIT, FR) | edge | elevenlabs | piper | espeak | dummy
         "voice": "fr-FR-DeniseNeural",   # utilisé par edge-tts
+        "se_voice": "Mathieu",      # voix StreamElements : Mathieu | Celine | Lea | Chantal
         "rate": "+0%",              # edge-tts : ex "+10%", "-5%"
         "words_per_minute": 160,    # utilisé par le backend 'dummy'
         "elevenlabs_voice_id": "Rachel",     # nom ou ID de voix ElevenLabs

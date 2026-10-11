@@ -265,9 +265,18 @@ def launch() -> None:
 
     row += 1
     ttk.Label(frm, text="Voix").grid(row=row, column=0, sticky="w", **pad)
-    tts_var = tk.StringVar(value=st.get("tts", "elevenlabs"))
+    tts_var = tk.StringVar(value=st.get("tts", "streamelements"))
     ttk.Combobox(frm, textvariable=tts_var, state="readonly",
-                 values=["elevenlabs", "edge", "piper", "espeak", "dummy"]).grid(
+                 values=["streamelements", "elevenlabs", "edge", "piper", "espeak", "dummy"]).grid(
+        row=row, column=1, sticky="w", **pad)
+    ttk.Label(frm, text="streamelements = gratuit FR, sans clé", foreground="#888").grid(
+        row=row, column=2, sticky="w", **pad)
+
+    row += 1
+    ttk.Label(frm, text="Voix gratuite (StreamElements)").grid(row=row, column=0, sticky="w", **pad)
+    se_voice_var = tk.StringVar(value=st.get("se_voice", "Mathieu"))
+    ttk.Combobox(frm, textvariable=se_voice_var, state="readonly",
+                 values=["Mathieu", "Celine", "Lea", "Chantal"]).grid(
         row=row, column=1, sticky="w", **pad)
 
     row += 1
@@ -441,6 +450,7 @@ def launch() -> None:
             "intro": intro_var.get(), "motion": motion_var.get(),
             "pixabay_key": pix_var.get(), "auto_images": autoimg_var.get(),
             "image_provider": imgprov_var.get(),
+            "se_voice": se_voice_var.get(),
             "ai_provider": ai_prov_var.get(),
             "groq_key": (ai_key_var.get() if _cur[0] == "groq" else ia_keys.get("groq", "")),
             "anthropic_key": (ai_key_var.get() if _cur[0] == "claude" else ia_keys.get("claude", "")),
@@ -525,7 +535,8 @@ def launch() -> None:
         state["out_dir"] = str(out_dir)
         el_voice = el_voice_map.get(el_voice_var.get(), el_voice_var.get()).strip()
         argv = [ep, "--tts", tts_var.get(), "--formats", fmt_var.get(),
-                "--transition", trans_var.get(), "--voice", edge_voice_var.get()]
+                "--transition", trans_var.get(), "--voice", edge_voice_var.get(),
+                "--se-voice", se_voice_var.get()]
         if el_voice:
             argv += ["--elevenlabs-voice", el_voice]
         if not intro_var.get():

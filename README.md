@@ -196,13 +196,19 @@ En ligne de commande :
 
 ## 5. Choisir la voix (TTS)
 
-| Backend          | Qualité         | Hors-ligne | Mise en place                               |
-|------------------|-----------------|:----------:|---------------------------------------------|
-| **`elevenlabs`** | excellente      | non        | **défaut** — `export ELEVENLABS_API_KEY=…`  |
-| `edge`           | très bonne      | non        | `pip install edge-tts` (gratuit)            |
-| `piper`          | bonne (neuronal)| oui        | binaire `piper` + un modèle `.onnx`         |
-| `espeak`         | robotique       | oui        | `apt install espeak-ng`                     |
-| `dummy`          | silence         | oui        | rien — pour tester le montage               |
+| Backend            | Qualité         | Clé / coût | Note |
+|--------------------|-----------------|------------|------|
+| **`streamelements`** | bonne (FR)    | **gratuit, sans clé** | **défaut** — voix FR Mathieu/Celine/Lea/Chantal |
+| `elevenlabs`       | excellente      | **payant** pour l'API | voix de bibliothèque bloquées en gratuit |
+| `edge`             | très bonne      | gratuit    | voix FR Microsoft ; peut renvoyer un 403 (service MS) |
+| `piper`            | bonne (neuronal)| gratuit, hors-ligne | binaire `piper` + un modèle `.onnx` |
+| `espeak`           | robotique       | gratuit, hors-ligne | `apt install espeak-ng` |
+| `dummy`            | silence         | gratuit    | pour tester le montage |
+
+> **Conseil :** laisse **`streamelements`** (voix française gratuite, sans clé,
+> sans compte) — c'est le choix par défaut et le plus simple. ElevenLabs n'est
+> utilisable via l'API qu'avec un **abonnement payant** ; `edge` est gratuit
+> mais dépend d'un service Microsoft parfois capricieux.
 
 ```bash
 # ElevenLabs (défaut) — la plus naturelle
