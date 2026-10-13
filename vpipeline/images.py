@@ -102,7 +102,10 @@ def _pollinations(query: str, cfg: dict[str, Any], api_key: str | None) -> tuple
     On construit l'URL ; l'image est créée au moment du téléchargement."""
     ic = cfg.get("images") or {}
     w, h = (1280, 720) if ic.get("orientation") != "vertical" else (720, 1280)
-    prompt = urllib.parse.quote(query.strip() or "illustration")
+    base = query.strip() or "illustration"
+    # On enrichit un peu la demande pour un rendu propre et exploitable.
+    full = f"{base}, illustration réaliste, haute qualité, éclairage cinématographique"
+    prompt = urllib.parse.quote(full)
     url = (f"https://image.pollinations.ai/prompt/{prompt}"
            f"?width={w}&height={h}&nologo=true")
     return url, None
@@ -138,17 +141,21 @@ def auto_fetch(episode: Episode, cfg: dict[str, Any], images_dir: Path) -> int:
     fallback = str(ic.get("fallback") or "").lower() or None
     pix_key = _resolve_key(cfg)
 
-    # Ordre d'essai des banques (sans doublon).
-    order = [p for p in (provider, fallback) if p in _PROVIDERS]
+    # Ordre d'essai des banques (sans doublon), avec l'IA en DERNIER RECOURS :
+    # Pollinations génère une image pour n'importe quel texte, donc aucun
+    # segment ne reste jamais sans image.
+    order: list[str] = []
+    for p in (provider, fallback, "ia"):
+        if p in _PROVIDERS and p not in order:
+            order.append(p)
     if not order:
-        order = ["openverse"]
-    # Si Pixabay est demandé sans clé, on prévient mais on continue (fallback).
+        order = ["openverse", "ia"]
+    # Si Pixabay est demandé sans clé, on prévient mais on continue : il reste
+    # toujours une banque sans clé (Openverse) et l'IA en dernier recours.
     if "pixabay" in order and not pix_key:
-        if "openverse" in order:
-            log("Pixabay sans clé : bascule automatique sur Openverse (sans clé).")
-        else:
-            die("Pixabay : renseigne ta clé (PIXABAY_API_KEY / champ dans l'appli), "
-                "ou choisis Openverse (sans clé).")
+        log("Pixabay sans clé : bascule automatique sur les sources sans clé "
+            "(Openverse, puis image générée par IA).")
+        order = [p for p in order if p != "pixabay"]
 
     images_dir.mkdir(parents=True, exist_ok=True)
     got = 0
